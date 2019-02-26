@@ -1,0 +1,8 @@
+.*.SHM
+.*.TXT
+*.o
+fegriffin
+*.hst
+*.idf
+*.idx
+midas.log
