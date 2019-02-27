@@ -25,7 +25,7 @@ std::string format(const std::string& format, ...)
 }
 
 CaenDigitizer::CaenDigitizer(HNDLE hDB, bool debug)
-	: fSettings(new CaenSettings), fDebug(debug)
+	: fSettings(new CaenSettings(debug)), fDebug(debug)
 {
 	fSettings->ReadOdb(hDB);
 	Setup();
@@ -53,7 +53,7 @@ void CaenDigitizer::Setup()
 			if(fHandle[b] == -1) {
 				if(fDebug) std::cout<<"setting up board "<<b<<std::endl;
 				// open digitizers
-				errorCode = CAEN_DGTZ_OpenDigitizer(fSettings->LinkType(b), b, 0, fSettings->VmeBaseAddress(b), &fHandle[b]);
+				errorCode = CAEN_DGTZ_OpenDigitizer(fSettings->LinkType(b), fSettings->PortNumber(b), fSettings->DeviceNumber(b), fSettings->VmeBaseAddress(b), &fHandle[b]);
 				if(errorCode != 0) {
 					throw std::runtime_error(format("Error %d when opening digitizer", errorCode));
 				}
@@ -149,6 +149,18 @@ void CaenDigitizer::StopAcquisition()
 	}
 }
 
+void CaenDigitizer::Calibrate()
+{
+	// calibrate all digitizers
+	int errorCode = 0;
+	for(int b = 0; b < fSettings->NumberOfBoards(); ++b) {
+		errorCode = CAEN_DGTZ_Calibrate(fHandle[b]);
+		if(errorCode != 0) {
+			std::cerr<<"Error "<<errorCode<<" when trying to calibrate board "<<b<<", handle "<<fHandle[b]<<std::endl;
+		}
+	}
+}
+
 INT CaenDigitizer::DataReady()
 {
 	int errorCode = 0;
@@ -176,11 +188,12 @@ INT CaenDigitizer::DataReady()
 		std::cout<<"----------------------------------------"<<std::endl;
 	}
 
+	// this is necessary because TRUE and FALSE are not booleans ...
 	if(gotData) return TRUE;
 	return FALSE;
 }
 
-void CaenDigitizer::ReadData(char* event, char* bankName)
+uint32_t CaenDigitizer::ReadData(char* event, const char* bankName)
 {
 	// creates bank at <event> and copies all data from fBuffer to it
 	// no checks for valid events done, nor any identification of board/channel???
@@ -193,11 +206,13 @@ void CaenDigitizer::ReadData(char* event, char* bankName)
 	}
 	if(sum == 0) {
 		std::cout<<__PRETTY_FUNCTION__<<": no data"<<std::endl;
-		return;
+		return 0;
 	}
 	//create bank - returns pointer to data area of bank
 	bk_create(event, bankName, TID_DWORD, reinterpret_cast<void**>(&data));
-	//copy all events from fEvents to data
+	//copy all events from fBuffer to data
+	uint32_t sumEvents = 0;
+	if(fDebug) std::cout<<"#events read: ";
 	for(int b = 0; b < fSettings->NumberOfBoards(); ++b) {
 		if(fBufferSize[b] == 0) continue;
 		//copy buffer of this board
@@ -206,10 +221,18 @@ void CaenDigitizer::ReadData(char* event, char* bankName)
 		if(fRawOutput.is_open()) {
 			fRawOutput.write(fBuffer[b], fBufferSize[b]);
 		}
+
+		uint32_t numEvents;
+		CAEN_DGTZ_GetNumEvents(fHandle[b], fBuffer[b], fBufferSize[b], &numEvents);
+		if(fDebug) std::cout<<"board "<<b<<": "<<std::setw(8)<<numEvents<<" ";
+		sumEvents += numEvents;
 	}
+	if(fDebug) std::cout<<"total: "<<std::setw(8)<<sumEvents<<std::endl;
 	
 	//close bank
 	bk_close(event, data);
+
+	return sumEvents;
 }
 
 void CaenDigitizer::ProgramDigitizer(int b)
@@ -258,13 +281,13 @@ void CaenDigitizer::ProgramDigitizer(int b)
 	// disabled turns acquisition mode back to SW controlled
 	// both GpioGpioDaisyChain and SinFanout turn it to S_IN controlled
 	// according to rev18 manual GpioGpioDaisyChain is not used!
-	errorCode = CAEN_DGTZ_SetRunSynchronizationMode(fHandle[b], CAEN_DGTZ_RUN_SYNC_SinFanout); // change to settings
+	errorCode = CAEN_DGTZ_SetRunSynchronizationMode(fHandle[b], CAEN_DGTZ_RUN_SYNC_SinFanout); // change to settings (was CAEN_DGTZ_RUN_SYNC_Disabled)
 
 	if(errorCode != 0) {
 		throw std::runtime_error(format("Error %d when setting run sychronization", errorCode));
 	}
 
-	errorCode = CAEN_DGTZ_SetDPPParameters(fHandle[b], fSettings->ChannelMask(b), static_cast<void*>(fSettings->ChannelParameter(b)));
+	errorCode = CAEN_DGTZ_SetDPPParameters(fHandle[b], fSettings->ChannelMask(b), const_cast<void*>(static_cast<const void*>(fSettings->ChannelParameter(b))));
 
 	if(errorCode != 0) {
 		throw std::runtime_error(format("Error %d when setting dpp parameters", errorCode));
@@ -278,7 +301,6 @@ void CaenDigitizer::ProgramDigitizer(int b)
 	CAEN_DGTZ_WriteRegister(fHandle[b], address, data);
 
 	for(int ch = 0; ch < fSettings->NumberOfChannels(); ++ch) {
-		std::cout<<"programming channel "<<ch<<std::endl;
 		if((fSettings->ChannelMask(b) & (1<<ch)) != 0) {
 			if(fDebug) std::cout<<"programming channel "<<ch<<std::endl;
 			if(ch%2 == 0) {
@@ -329,19 +351,23 @@ void CaenDigitizer::ProgramDigitizer(int b)
 	data = (data & ~0x3000) | 0x2000;
 	CAEN_DGTZ_WriteRegister(fHandle[b], address, data);
 
-	// print some registers
-	//address = 0x8000;
-	//CAEN_DGTZ_ReadRegister(fHandle[b], address, &data);
-	//std::cout<<"register 0x"<<std::hex<<address<<": 0x"<<data<<std::dec<<std::endl;
-	//address = 0x8100;
-	//CAEN_DGTZ_ReadRegister(fHandle[b], address, &data);
-	//std::cout<<"register 0x"<<std::hex<<address<<": 0x"<<data<<std::dec<<std::endl;
-
 	// use external clock - this seems to be safer if done at the end of setting all parameters ???
-	address = 0x8100;
-	CAEN_DGTZ_ReadRegister(fHandle[b], address, &data);
-	data |= 0x40; // no mask necessary, we just set one bit
-	CAEN_DGTZ_WriteRegister(fHandle[b], address, data);
+	if(fSettings->UseExternalClock()) {
+		if(fSettings->BoardType(b) == EBoardType::kVME) {
+			// VME boards have an onboard switch to select the clock
+			// so we check if it's enabled and give a warning otherwise
+			address = 0x8104;
+			CAEN_DGTZ_ReadRegister(fHandle[b], address, &data);
+			if((data&0x20) != 0x20) {
+				cm_msg(MERROR, "ProgramDigitizer", "Requested external clock for VME module, this has to be set by onboard switch S3 (0x%x)", data);
+			}
+		} else {
+			address = 0x8100;
+			CAEN_DGTZ_ReadRegister(fHandle[b], address, &data);
+			data |= 0x40; // no mask necessary, we just set one bit
+			CAEN_DGTZ_WriteRegister(fHandle[b], address, data);
+		}
+	}
 
 	if(fDebug) std::cout<<"done with digitizer "<<b<<std::endl;
 }

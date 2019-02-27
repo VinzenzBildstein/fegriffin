@@ -146,7 +146,7 @@ void param_encode(char *buf, int par, int write, int chan, int val);
 int  param_decode(unsigned char *buf, int *par, int *chan, int *val);
 int  open_udp_socket(char *host, int port, struct sockaddr_in *addr);
 int  open_tcp_socket(char *host, int port, struct sockaddr_in *addr);
-int  sndmsg(int fd, struct sockaddr_in *addr, char *msg, int len, char *reply);
+int  sndmsg(int fd, struct sockaddr_in *addr, const char *msg, int len, char *reply);
 int  testmsg(int socket, int timeout), readmsg(int socket);
 void grifc_eventread_init();
 int  grifc_eventread(int, int addr, int *dst, int *, int *, int *extra_info);
@@ -336,7 +336,7 @@ extern "C" {
 
 int begin_of_run(int run_number, char *error)
 {
-   int i, status, size;
+   int i;//, status, size;
 
    gDigitizer->StartAcquisition(hDB);
 
@@ -780,7 +780,7 @@ int read_grifc_event(char *pevent, int grifc_id)
 ///////////////////////////////////////////////////////////////////////////
 //////////////////////      network data link      ////////////////////////
 
-int sndmsg(int sock_fd, struct sockaddr_in *addr, char *message, int msglen, char *reply)
+int sndmsg(int sock_fd, struct sockaddr_in *addr, const char *message, int msglen, char *reply)
 {
    struct sockaddr_in client_addr;
    int bytes, flags=0;
@@ -806,12 +806,14 @@ int sndmsg(int sock_fd, struct sockaddr_in *addr, char *message, int msglen, cha
 // select: -ve=>error, zero=>no-data +ve=>data-avail
 int testmsg(int socket, int timeout)
 {
-   int num_fd; fd_set read_fds;
+	fd_set read_fds;
    struct timeval tv;
 
-   tv.tv_sec = 0; tv.tv_usec = timeout;
-   num_fd = 1; FD_ZERO(&read_fds); FD_SET(socket, &read_fds);
-   return( select(socket+1, &read_fds, NULL, NULL, &tv) );
+   tv.tv_sec = 0;
+	tv.tv_usec = timeout;
+	FD_ZERO(&read_fds);
+	FD_SET(socket, &read_fds);
+   return select(socket+1, &read_fds, NULL, NULL, &tv);
 }
 
 // reply pkts have 16bit dword count, then #count dwords
@@ -955,7 +957,7 @@ int event_item_offset(int *data, int len, int item)
 {
    int i = -1;
    while( ++i < len ){
-     if( (data[i] & 0xF0000000) == item ){ return(i); }
+     if( ((int)(data[i] & 0xF0000000)) == item ){ return(i); }
    }
    return(-1);
 }
