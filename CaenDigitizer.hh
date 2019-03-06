@@ -39,5 +39,6 @@ private:
 	std::ofstream fRawOutput;
 
 	bool fDebug;
+	bool fSetupDone;
 };
 #endif

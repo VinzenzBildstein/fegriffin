@@ -25,10 +25,11 @@ std::string format(const std::string& format, ...)
 }
 
 CaenDigitizer::CaenDigitizer(HNDLE hDB, bool debug)
-	: fSettings(new CaenSettings(debug)), fDebug(debug)
+	: fSettings(new CaenSettings(debug)), fDebug(debug), fSetupDone(false)
 {
-	fSettings->ReadOdb(hDB);
-	Setup();
+	if(fDebug) std::cout<<"Using ODB handle "<<hDB<<std::endl;
+	// only setup digitizers now if we were successful in reading the settings from the ODB
+	if(fSettings->ReadOdb(hDB)) Setup();
 }
 
 void CaenDigitizer::Setup()
@@ -110,11 +111,14 @@ void CaenDigitizer::Setup()
 #endif
 		if(fDebug) std::cout<<"done with board "<<b<<std::endl;
 	} // for(int b = 0; b < fSettings->NumberOfBoards(); ++b)
+	fSetupDone = true;
+	std::cout<<"Setup of VX1730 finished!"<<std::endl;
 }
 
 CaenDigitizer::~CaenDigitizer()
 {
-	for(int b = 0; b < fSettings->NumberOfBoards(); ++b) {
+	// only need to free or close anything if we did a setup already
+	for(int b = 0; b < fSettings->NumberOfBoards() && fSetupDone; ++b) {
 		CAEN_DGTZ_FreeReadoutBuffer(&fBuffer[b]);
 #ifdef USE_WAVEFORMS
 		CAEN_DGTZ_FreeDPPWaveforms(fHandle[b], reinterpret_cast<void*>(fWaveforms[b]));
@@ -141,7 +145,7 @@ void CaenDigitizer::StartAcquisition(HNDLE hDB)
 void CaenDigitizer::StopAcquisition()
 {
 	// stop acquisition
-	for(int b = 0; b < fSettings->NumberOfBoards(); ++b) {
+	for(int b = 0; b < fSettings->NumberOfBoards() && fSetupDone; ++b) {
 		CAEN_DGTZ_SWStopAcquisition(fHandle[b]);
 	}
 	if(fRawOutput.is_open()) {
@@ -163,6 +167,11 @@ void CaenDigitizer::Calibrate()
 
 INT CaenDigitizer::DataReady()
 {
+	// if the setup hasn't been done we can't get any data
+	if(!fSetupDone) {
+		return FALSE;
+	}
+
 	int errorCode = 0;
 
 	// read data
@@ -173,8 +182,8 @@ INT CaenDigitizer::DataReady()
 	for(int b = 0; b < fSettings->NumberOfBoards(); ++b) {
 		errorCode = CAEN_DGTZ_ReadData(fHandle[b], CAEN_DGTZ_SLAVE_TERMINATED_READOUT_MBLT, fBuffer[b], &fBufferSize[b]);
 		if(errorCode != 0) {
-			std::cerr<<"Error "<<errorCode<<" when reading data"<<std::endl;
-			return -1.;
+			//std::cerr<<"Error "<<errorCode<<" when reading data from board "<<b<<std::endl;
+			return FALSE;
 		}
 		if(fDebug) {
 			std::cout<<"Read "<<fBufferSize[b]<<" bytes"<<std::endl;
