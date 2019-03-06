@@ -19,7 +19,7 @@ endif
 
 OSFLAGS  = -DOS_LINUX -Dextname
 CFLAGS   = -g -Wall -Wuninitialized -I$(INC_DIR) -I$(DRV_DIR) -I$(VMICHOME)/include -I.
-CXXFLAGS = -std=c++11 $(CFLAGS) 
+CXXFLAGS = -std=c++0x $(CFLAGS) 
 
 # use root if it's available
 ifneq ($(ROOTSYS),)
