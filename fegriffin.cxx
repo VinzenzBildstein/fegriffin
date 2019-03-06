@@ -95,7 +95,7 @@ EQUIPMENT equipment[] = {
      1000, 0, 0, 0,                 /* poll[ms], Evt Lim, SubEvtLim, LogHist */
      "", "", "",}, read_scalar_event,                     /* readout routine */
    },
-   {"DT5730",                                             /* equipment name */
+   {"VX1730",                                             /* equipment name */
       {3, 0, "SYSTEM",                      /* event ID, trigger mask, Evbuf */
        EQ_POLLED, 0, "MIDAS",         /* equipment type, EventSource, format */
        TRUE, RO_RUNNING,                              /* enabled?, WhenRead? */
@@ -140,7 +140,7 @@ static int replybufbytes;
 static float EPICS_Rates[20]; // Values from scalars and sent to ODB
 //static float last_Rates[11];
 
-CaenDigitizer* gDigitizer;
+CaenDigitizer* gDigitizer = nullptr;
 
 void param_encode(char *buf, int par, int write, int chan, int val);
 int  param_decode(unsigned char *buf, int *par, int *chan, int *val);
@@ -293,6 +293,11 @@ int frontend_init()
       printf("   Write Network Packet Size      [%d], reply:%d bytes\n", par, status);
    }
 
+	//if(hDB == nullptr) {
+	//	std::cout<<"No handle for ODB, aborting"<<std::endl;
+	//	exit(0);
+	//}
+
    delete gDigitizer;
    gDigitizer = new CaenDigitizer(hDB);
    printf("done\n");
@@ -338,7 +343,7 @@ int begin_of_run(int run_number, char *error)
 {
    int i;//, status, size;
 
-   gDigitizer->StartAcquisition(hDB);
+   if(gDigitizer != nullptr) gDigitizer->StartAcquisition(hDB);
 
    //size = sizeof(TRIGGER_SETTINGS); /* read Triggger settings again ? */
    //if ((status = db_get_record (hDB, hSet, &ts, &size, 0)) != DB_SUCCESS){
@@ -410,8 +415,8 @@ int end_of_run(int run_number, char *error)
    if( (db_set_value(hDB,0,tmp,&EPICS_Rates,size,size/sizeof(EPICS_Rates[0]),TID_FLOAT)) != DB_SUCCESS){
      cm_msg(MINFO,"FE","Can't set value for Key %s",tmp); return(-1);}
    
-   printf("stopping DT5730 digitizer ...\n");
-   gDigitizer->StopAcquisition();
+   printf("stopping VX1730 digitizer ...\n");
+   if(gDigitizer!= nullptr) gDigitizer->StopAcquisition();
    printf("done!\n");
 
    return SUCCESS;
@@ -436,7 +441,7 @@ INT poll_event(INT source, INT count, BOOL test)
    for(i=0; i<count; i++){
 		// we can't check if there is data w/o reading it. To ensure we don't overwrite what we've read
 		// we wait until read_dt5730_event sets caen_data_available back to false
-		if( !caen_data_available ) { 
+		if( !caen_data_available  && gDigitizer != nullptr) { 
 			caen_data_available = gDigitizer->DataReady();
 		}
       if( caen_data_available ){ break; }
@@ -679,8 +684,14 @@ int read_dt5730_event(char *pevent, int off)
 	}
    bk_init(pevent);
 
-   gDigitizer->ReadData(pevent, "CAEN");
+	uint32_t nofEvents = 0;
+   if(gDigitizer != nullptr) nofEvents = gDigitizer->ReadData(pevent, "CAEN");
 	caen_data_available = false;
+
+	if(nofEvents > 1) {
+		SERIAL_NUMBER(pevent) += nofEvents - 1;
+	}
+
    return bk_size(pevent);
 }
 
