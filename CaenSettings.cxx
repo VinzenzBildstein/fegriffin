@@ -425,7 +425,21 @@ void BoardSettings::Print()
 			break;
 	}
 	std::cout<<"   event aggregation "<<fEventAggregation<<std::endl;
-	std::cout<<"   trigger mode "<<fTriggerMode<<std::endl;
+	std::cout<<"   trigger mode "<<fTriggerMode<<" = ";
+	switch(fTriggerMode) {
+		case CAEN_DGTZ_TRGMODE_DISABLED:
+			std::cout<<"disabled"<<std::endl;
+			break;
+		case CAEN_DGTZ_TRGMODE_EXTOUT_ONLY:
+			std::cout<<"ext out only"<<std::endl;
+			break;
+		case CAEN_DGTZ_TRGMODE_ACQ_ONLY:
+			std::cout<<"acq only"<<std::endl;
+			break;
+		case CAEN_DGTZ_TRGMODE_ACQ_AND_EXTOUT:
+			std::cout<<"acq and ext out"<<std::endl;
+			break;
+	}
 
 	std::cout<<"   pile-up rejection mode "<<fChannelParameter.purh<<" = ";
 	switch(fChannelParameter.purh) {
@@ -478,11 +492,11 @@ CaenSettings::~CaenSettings()
 {
 }
 
-void CaenSettings::ReadOdb(HNDLE hDB)
+bool CaenSettings::ReadOdb(HNDLE hDB)
 {
 	if(hDB == 0) {
 		std::cerr<<"Can't read settings from ODB, handle provided is "<<hDB<<std::endl;
-		return;
+		return false;
 	}
 	// read template from ODB
 	HNDLE hSet;
@@ -585,6 +599,8 @@ void CaenSettings::ReadOdb(HNDLE hDB)
 	}
 
 	Print();
+
+	return true;
 }
 
 #ifdef USE_TENV

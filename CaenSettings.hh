@@ -98,7 +98,7 @@ public:
 	void DeviceNumber(const int& val) { fDeviceNumber = val; }
 
 	//getters
-	CAEN_DGTZ_ConnectionType LinkType() const { std::cout<<"fLinkType "<<fLinkType<<std::endl; return fLinkType; }
+	CAEN_DGTZ_ConnectionType LinkType() const { return fLinkType; }
 	EBoardType BoardType() const { return fBoardType; }
 	uint32_t VmeBaseAddress() const { return fVmeBaseAddress; }
 	CAEN_DGTZ_DPP_AcqMode_t AcquisitionMode() const { return fAcquisitionMode; }
@@ -158,7 +158,7 @@ public:
 	CaenSettings(bool debug = false);
 	~CaenSettings();
 
-	void ReadOdb(HNDLE hDB);
+	bool ReadOdb(HNDLE hDB);
 #ifdef USE_TENV
 	bool ReadSettingsFile(const std::string&);
 #endif
