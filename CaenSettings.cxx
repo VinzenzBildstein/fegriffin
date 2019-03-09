@@ -7,6 +7,8 @@
 #include <curses.h>
 #include <cstdlib>
 #include <cstring>
+#include <algorithm>
+#include <iterator>
 
 #include "midas.h"
 
@@ -15,6 +17,29 @@
 #endif
 
 #include "CaenOdb.h"
+
+bool operator==(const CAEN_DGTZ_DPP_PSD_Params_t& lh, const CAEN_DGTZ_DPP_PSD_Params_t& rh)
+{
+	return (lh.blthr == rh.blthr &&
+	        lh.bltmo == rh.bltmo &&
+	        lh.trgho == rh.trgho &&
+	        std::equal(lh.thr,   lh.thr   + sizeof(lh.thr)/sizeof(*(lh.thr)),     rh.thr)   &&
+	        std::equal(lh.selft, lh.selft + sizeof(lh.selft)/sizeof(*(lh.selft)), rh.selft) &&
+	        std::equal(lh.csens, lh.csens + sizeof(lh.csens)/sizeof(*(lh.csens)), rh.csens) &&
+	        std::equal(lh.sgate, lh.sgate + sizeof(lh.sgate)/sizeof(*(lh.sgate)), rh.sgate) &&
+	        std::equal(lh.lgate, lh.lgate + sizeof(lh.lgate)/sizeof(*(lh.lgate)), rh.lgate) &&
+	        std::equal(lh.pgate, lh.pgate + sizeof(lh.pgate)/sizeof(*(lh.pgate)), rh.pgate) &&
+	        std::equal(lh.tvaw,  lh.tvaw  + sizeof(lh.tvaw)/sizeof(*(lh.tvaw)),   rh.tvaw)  &&
+	        std::equal(lh.nsbl,  lh.nsbl  + sizeof(lh.nsbl)/sizeof(*(lh.nsbl)),   rh.nsbl)  &&
+	        lh.trgc  == rh.trgc  &&
+	        lh.purh  == rh.purh  &&
+	        lh.purgap  == rh.purgap);
+}
+
+bool operator!=(const CAEN_DGTZ_DPP_PSD_Params_t& lh, const CAEN_DGTZ_DPP_PSD_Params_t& rh)
+{
+	return !(lh == rh);
+}
 
 ChannelSettings::ChannelSettings(const V1730_TEMPLATE& templateSettings)
 {
@@ -117,6 +142,55 @@ ChannelSettings::~ChannelSettings()
 {
 }
 
+void ChannelSettings::Print(const ChannelSettings& templateSettings)
+{
+	if(fRecordLength != templateSettings.RecordLength()) {
+		std::cout<<"      record length "<<fRecordLength<<std::endl;
+	}
+	if(fDCOffset != templateSettings.DCOffset()) {
+		std::cout<<"      DC offset 0x"<<std::hex<<fDCOffset<<std::dec<<std::endl;
+	}
+	if(fPreTrigger != templateSettings.PreTrigger()) {
+		std::cout<<"      pre trigger "<<fPreTrigger<<std::endl;
+	}
+	if(fPulsePolarity != templateSettings.PulsePolarity()) {
+		std::cout<<"      pulse polarity ";
+		switch(fPulsePolarity) {
+			case CAEN_DGTZ_PulsePolarityPositive:
+				std::cout<<"positive"<<std::endl;
+				break;
+			case CAEN_DGTZ_PulsePolarityNegative:
+				std::cout<<"negative"<<std::endl;
+				break;
+			default:
+				std::cout<<"unknown"<<std::endl;
+				break;
+		}
+	}
+	if(fEnableCfd != templateSettings.EnableCfd()) {
+		if(fEnableCfd) {
+			std::cout<<"      cfd enabled"<<std::endl;
+		} else {
+			std::cout<<"      cfd disabled"<<std::endl;
+		}
+	}
+	if(fCfdParameters != templateSettings.CfdParameters()) {
+		std::cout<<"      cfd parameters 0x"<<std::hex<<fCfdParameters<<std::dec<<std::endl;
+	}
+	if(fEnableCoinc != templateSettings.EnableCoinc()) {
+		std::cout<<"      coincidence "<<(fEnableCoinc?"enabled":"disabled")<<std::endl;
+	}
+	if(fEnableBaseline != templateSettings.EnableBaseline()) {
+		std::cout<<"      baseline "<<(fEnableBaseline?"enabled":"disabled")<<std::endl;
+	}
+	if(fCoincWindow != templateSettings.CoincWindow()) {
+		std::cout<<"      coincidence window "<<fCoincWindow<<std::endl;
+	}
+	if(fCoincLatency != templateSettings.CoincLatency()) {
+		std::cout<<"      coincidence latency "<<fCoincLatency<<std::endl;
+	}
+}
+
 void ChannelSettings::Print()
 {
 	std::cout<<"      record length "<<fRecordLength<<std::endl;
@@ -144,6 +218,26 @@ void ChannelSettings::Print()
 		<<"      baseline "<<(fEnableBaseline?"enabled":"disabled")<<std::endl
 		<<"      coincidence window "<<fCoincWindow<<std::endl
 		<<"      coincidence latency "<<fCoincLatency<<std::endl;
+}
+
+bool operator==(const ChannelSettings& lh, const ChannelSettings& rh)
+{
+	return (lh.fRecordLength    == rh.fRecordLength &&
+			  lh.fDCOffset        == rh.fDCOffset &&
+			  lh.fPreTrigger      == rh.fPreTrigger &&
+			  lh.fPulsePolarity   == rh.fPulsePolarity &&
+			  lh.fEnableCfd       == rh.fEnableCfd &&
+			  lh.fCfdParameters   == rh.fCfdParameters &&
+			  lh.fEnableCoinc     == rh.fEnableCoinc &&
+			  lh.fEnableCoincTrig == rh.fEnableCoincTrig &&
+			  lh.fEnableBaseline  == rh.fEnableBaseline &&
+			  lh.fCoincWindow     == rh.fCoincWindow &&
+			  lh.fCoincLatency    == rh.fCoincLatency);
+}
+
+bool operator!=(const ChannelSettings& lh, const ChannelSettings& rh)
+{
+	return !(lh == rh);
 }
 
 BoardSettings::BoardSettings(const int& nofChannels, const V1730_TEMPLATE& templateSettings)
@@ -334,6 +428,213 @@ BoardSettings::~BoardSettings()
 {
 }
 
+void BoardSettings::Print(const BoardSettings& templateSettings)
+{
+	if(fLinkType != templateSettings.LinkType()) {
+		std::cout<<"  link type "<<fLinkType<<" = ";
+		switch(fLinkType) {
+			case CAEN_DGTZ_USB:
+				std::cout<<"USB"<<std::endl;
+				break;
+			case CAEN_DGTZ_OpticalLink:
+				std::cout<<"Optical Link"<<std::endl;
+				break;
+			default:
+				std::cout<<"unknown"<<std::endl;
+				break;
+		}
+	}
+	if(fBoardType != templateSettings.BoardType()) {
+		std::cout<<"  board type "<<static_cast<int>(fBoardType)<<" = ";
+		switch(fBoardType) {
+			case EBoardType::kDesktop:
+				std::cout<<"Desktop"<<std::endl;
+				break;
+			case EBoardType::kNIM:
+				std::cout<<"NIM"<<std::endl;
+				break;
+			case EBoardType::kVME:
+				std::cout<<"VME"<<std::endl;
+				break;
+			default:
+				std::cout<<"unknown"<<std::endl;
+				break;
+		}
+	}
+	if(fVmeBaseAddress != templateSettings.VmeBaseAddress()) {
+		std::cout<<"   VME base address 0x"<<std::hex<<fVmeBaseAddress<<std::dec<<std::endl;
+	}
+	// always print port number and device number (these HAVE to be different for all boards)
+	std::cout<<"   Port number "<<fPortNumber<<std::endl;
+	std::cout<<"   Device number "<<fDeviceNumber<<std::endl;
+
+	if(fAcquisitionMode != templateSettings.AcquisitionMode()) {
+		std::cout<<"   acquisition mode "<<fAcquisitionMode<<" = ";
+		switch(fAcquisitionMode) {
+			case CAEN_DGTZ_DPP_ACQ_MODE_Oscilloscope:
+				std::cout<<"oscilloscope"<<std::endl;
+				break;
+			case CAEN_DGTZ_DPP_ACQ_MODE_List:
+				std::cout<<"list mode"<<std::endl;
+				break;
+			case CAEN_DGTZ_DPP_ACQ_MODE_Mixed:
+				std::cout<<"mixed"<<std::endl;
+				break;
+				//case CAEN_DGTZ_SW_CONTROLLED:
+				//	std::cout<<"software controlled"<<std::endl;
+				//	break;
+				//case CAEN_DGTZ_S_IN_CONTROLLED:
+				//	std::cout<<"external signal controlled"<<std::endl;
+				//	break;
+				//case CAEN_DGTZ_FIRST_TRG_CONTROLLED:
+				//	std::cout<<"first trigger controlled"<<std::endl;
+				//	break;
+			default:
+				std::cout<<"unknown"<<std::endl;
+				break;
+		}
+	}
+	if(fIOLevel != templateSettings.IOLevel()) {
+		std::cout<<"   IO level "<<fIOLevel<<" = ";
+		switch(fIOLevel) {
+			case CAEN_DGTZ_IOLevel_NIM:
+				std::cout<<"NIM"<<std::endl;
+				break;
+			case CAEN_DGTZ_IOLevel_TTL:
+				std::cout<<"TTL"<<std::endl;
+				break;
+			default:
+				std::cout<<"unknown"<<std::endl;
+				break;
+		}
+	}
+	if(fChannelMask != templateSettings.ChannelMask()) {
+		std::cout<<"   channel mask 0x"<<std::hex<<fChannelMask<<std::dec<<std::endl;
+	}
+	if(fRunSync != templateSettings.RunSync()) {
+		std::cout<<"   run sync "<<fRunSync<<" = ";
+		switch(fRunSync) {
+			case CAEN_DGTZ_RUN_SYNC_Disabled:
+				std::cout<<"disabled"<<std::endl;
+				break;
+			case CAEN_DGTZ_RUN_SYNC_TrgOutTrgInDaisyChain:
+				std::cout<<"trigger out/trigger in chain"<<std::endl;
+				break;
+			case CAEN_DGTZ_RUN_SYNC_TrgOutSinDaisyChain:
+				std::cout<<"trigger out/s in chain"<<std::endl;
+				break;
+			case CAEN_DGTZ_RUN_SYNC_SinFanout:
+				std::cout<<"s in fanout"<<std::endl;
+				break;
+			case CAEN_DGTZ_RUN_SYNC_GpioGpioDaisyChain:
+				std::cout<<"gpio chain"<<std::endl;
+				break;
+			default:
+				std::cout<<"unknown"<<std::endl;
+				break;
+		}
+	}
+	if(fEventAggregation != templateSettings.EventAggregation()) {
+		std::cout<<"   event aggregation "<<fEventAggregation<<std::endl;
+	}
+	if(fTriggerMode != templateSettings.TriggerMode()) {
+		std::cout<<"   trigger mode "<<fTriggerMode<<" = ";
+		switch(fTriggerMode) {
+			case CAEN_DGTZ_TRGMODE_DISABLED:
+				std::cout<<"disabled"<<std::endl;
+				break;
+			case CAEN_DGTZ_TRGMODE_EXTOUT_ONLY:
+				std::cout<<"ext out only"<<std::endl;
+				break;
+			case CAEN_DGTZ_TRGMODE_ACQ_ONLY:
+				std::cout<<"acq only"<<std::endl;
+				break;
+			case CAEN_DGTZ_TRGMODE_ACQ_AND_EXTOUT:
+				std::cout<<"acq and ext out"<<std::endl;
+				break;
+		}
+	}
+
+	if(fChannelParameter.purh != templateSettings.ChannelParameter()->purh) {
+		std::cout<<"   pile-up rejection mode "<<fChannelParameter.purh<<" = ";
+		switch(fChannelParameter.purh) {
+			case CAEN_DGTZ_DPP_PSD_PUR_DetectOnly:
+				std::cout<<"detection only"<<std::endl;
+				break;
+			case CAEN_DGTZ_DPP_PSD_PUR_Enabled:
+				std::cout<<"enabled"<<std::endl;
+				break;
+			default:
+				std::cout<<"unknown"<<std::endl;
+				break;
+		}
+	}
+	if(fChannelParameter.purgap != templateSettings.ChannelParameter()->purgap) {
+		std::cout<<"   pile-up gap "<<fChannelParameter.purgap<<std::endl;
+	}
+	if(fChannelParameter.blthr != templateSettings.ChannelParameter()->blthr) {
+		std::cout<<"   baseline threshold "<<fChannelParameter.blthr<<std::endl;
+	}
+	if(fChannelParameter.bltmo != templateSettings.ChannelParameter()->bltmo) {
+		std::cout<<"   baseline timeout "<<fChannelParameter.bltmo<<std::endl;
+	}
+	if(fChannelParameter.trgho != templateSettings.ChannelParameter()->trgho) {
+		std::cout<<"   trigger holdoff "<<fChannelParameter.trgho<<std::endl;
+	}
+	for(int ch = 0; ch < static_cast<int>(fChannelSettings.size()); ++ch) {
+		if(fChannelSettings[ch] == templateSettings.ChannelSettingsVector().at(0) &&
+			fChannelParameter == *(templateSettings.ChannelParameter())) {
+			continue;
+		}
+		std::cout<<"   Channel #"<<ch<<" custom settings:"<<std::endl;
+		if(fChannelSettings[ch] == templateSettings.ChannelSettingsVector().at(0)) {
+			std::cout<<"same channel settings"<<std::endl;
+		}
+		if(fChannelParameter == *(templateSettings.ChannelParameter())) {
+			std::cout<<"same channel parameter"<<std::endl;
+		}
+		fChannelSettings[ch].Print(templateSettings.ChannelSettingsVector().at(0));
+		if(fChannelParameter.thr[ch] != templateSettings.ChannelParameter()->thr[0]) {
+			std::cout<<"      threshold "<<fChannelParameter.thr[ch]<<std::endl;
+		}
+		if(fChannelParameter.nsbl[ch] != templateSettings.ChannelParameter()->nsbl[0]) {
+			std::cout<<"      baseline samples "<<fChannelParameter.nsbl[ch]<<std::endl;
+		}
+		if(fChannelParameter.lgate[ch] != templateSettings.ChannelParameter()->lgate[0]) {
+			std::cout<<"      long gate "<<fChannelParameter.lgate[ch]<<std::endl;
+		}
+		if(fChannelParameter.sgate[ch] != templateSettings.ChannelParameter()->sgate[0]) {
+			std::cout<<"      short gate "<<fChannelParameter.sgate[ch]<<std::endl;
+		}
+		if(fChannelParameter.pgate[ch] != templateSettings.ChannelParameter()->pgate[0]) {
+			std::cout<<"      pre-gate "<<fChannelParameter.pgate[ch]<<std::endl;
+		}
+		if(fChannelParameter.selft[ch] != templateSettings.ChannelParameter()->selft[0]) {
+			std::cout<<"      self trigger "<<fChannelParameter.selft[ch]<<std::endl;
+		}
+		if(fChannelParameter.trgc[ch] != templateSettings.ChannelParameter()->trgc[0]) {
+			std::cout<<"      trigger conf. "<<fChannelParameter.trgc[ch]<<" = ";
+			switch(fChannelParameter.trgc[ch]) {
+				case CAEN_DGTZ_DPP_TriggerConfig_Peak:
+					std::cout<<" peak"<<std::endl;
+					break;
+				case CAEN_DGTZ_DPP_TriggerConfig_Threshold:
+					std::cout<<" threshold"<<std::endl;
+					break;
+				default:
+					std::cout<<"unknown"<<std::endl;
+					break;
+			}
+		}
+		if(fChannelParameter.tvaw[ch] != templateSettings.ChannelParameter()->tvaw[0]) {
+			std::cout<<"      trigger val. window "<<fChannelParameter.tvaw[ch]<<std::endl;
+		}
+		if(fChannelParameter.csens[ch] != templateSettings.ChannelParameter()->csens[0]) {
+			std::cout<<"      charge sensitivity "<<fChannelParameter.csens[ch]<<std::endl;
+		}
+	}
+}
+
 void BoardSettings::Print()
 {
 	std::cout<<"  link type "<<fLinkType<<" = ";
@@ -483,6 +784,36 @@ void BoardSettings::Print()
 	}
 }
 
+bool operator==(const BoardSettings& lh, const BoardSettings& rh)
+{
+	if(lh.fChannelSettings.size() != rh.fChannelSettings.size()) {
+		return false;
+	}
+	for(size_t ch = 0; ch < lh.fChannelSettings.size(); ++ch) {
+		if(lh.fChannelSettings[ch] != rh.fChannelSettings[ch]) {
+			return false;
+		}
+	}
+
+	return (lh.fLinkType         == rh.fLinkType &&
+			  lh.fBoardType        == rh.fBoardType &&
+			  lh.fVmeBaseAddress   == rh.fVmeBaseAddress &&
+			  lh.fPortNumber       == rh.fPortNumber &&
+			  lh.fDeviceNumber     == rh.fDeviceNumber &&
+			  lh.fAcquisitionMode  == rh.fAcquisitionMode &&
+			  lh.fIOLevel          == rh.fIOLevel &&
+			  lh.fChannelMask      == rh.fChannelMask &&
+			  lh.fRunSync          == rh.fRunSync &&
+			  lh.fEventAggregation == rh.fEventAggregation &&
+			  lh.fTriggerMode      == rh.fTriggerMode &&
+			  lh.fChannelParameter == rh.fChannelParameter);
+}
+
+bool operator!=(const BoardSettings& lh, const BoardSettings& rh)
+{
+	return !(lh == rh);
+}
+
 CaenSettings::CaenSettings(bool debug)
 {
 	fDebug = debug;
@@ -563,6 +894,8 @@ bool CaenSettings::ReadOdb(HNDLE hDB)
 			<<"baseline_samples "<<templateSettings.baseline_samples<<std::endl
 			<<std::endl;
 	}
+	fTemplateSettings = BoardSettings(1, templateSettings);
+
 	fBoardSettings.resize(fNumberOfBoards);
 	for(int i = 0; i < fNumberOfBoards; ++i) {
 		fBoardSettings[i] = BoardSettings(fNumberOfChannels, templateSettings);
@@ -786,9 +1119,11 @@ bool CaenSettings::WriteOdb()
 void CaenSettings::Print()
 {
 	std::cout<<(fUseExternalClock?"Using ":"Not using ")<<" external clock for "<<fNumberOfBoards<<" board(s) with "<<fNumberOfChannels<<" channels each:"<<std::endl;
+	std::cout<<"template settings:"<<std::endl;
+	fTemplateSettings.Print();
 	for(size_t i = 0; i < fBoardSettings.size(); ++i) {
-		std::cout<<"Board #"<<i<<std::endl;
-		fBoardSettings[i].Print();
+		std::cout<<"Board #"<<i<<" custom settings:"<<std::endl;
+		fBoardSettings[i].Print(fTemplateSettings);
 	}
 }
 

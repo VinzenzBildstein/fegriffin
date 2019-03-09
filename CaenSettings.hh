@@ -26,6 +26,8 @@ public:
 	~ChannelSettings();
 
 	void ReadCustomSettings(const HNDLE& db, const HNDLE& key);
+
+	void Print(const ChannelSettings& templateSettings);
 	void Print();
 
 	//setters
@@ -54,6 +56,9 @@ public:
 	uint32_t CoincWindow() const { return fCoincWindow; }
 	uint32_t CoincLatency() const { return fCoincLatency; }
 
+	friend bool operator==(const ChannelSettings& lh, const ChannelSettings& rh);
+	friend bool operator!=(const ChannelSettings& lh, const ChannelSettings& rh);
+
 private:
 	uint32_t fRecordLength;
 	uint32_t fDCOffset;
@@ -81,6 +86,7 @@ public:
 	void ReadCustomSettings(const HNDLE& db, const HNDLE& key);
 	void ReadCustomChannelSettings(const int& channel, const HNDLE& db, const HNDLE& key);
 
+	void Print(const BoardSettings& templateSettings);
 	void Print();
 
 	//setters
@@ -98,6 +104,7 @@ public:
 	void DeviceNumber(const int& val) { fDeviceNumber = val; }
 
 	//getters
+	std::vector<ChannelSettings> ChannelSettingsVector() const { return fChannelSettings; }
 	CAEN_DGTZ_ConnectionType LinkType() const { return fLinkType; }
 	EBoardType BoardType() const { return fBoardType; }
 	uint32_t VmeBaseAddress() const { return fVmeBaseAddress; }
@@ -137,6 +144,9 @@ public:
 	uint32_t CoincWindow(const int& i) const { return fChannelSettings.at(i).CoincWindow(); }
 	uint32_t CoincLatency(const int& i) const { return fChannelSettings.at(i).CoincLatency(); }
 	
+	friend bool operator==(const BoardSettings& lh, const BoardSettings& rh);
+	friend bool operator!=(const BoardSettings& lh, const BoardSettings& rh);
+
 private:
 	CAEN_DGTZ_ConnectionType fLinkType; //enum
 	EBoardType fBoardType; // enum
@@ -207,6 +217,7 @@ private:
 	int fNumberOfChannels;
 	bool fUseExternalClock;
 
+	BoardSettings fTemplateSettings;
 	std::vector<BoardSettings> fBoardSettings;
 
 	size_t fBufferSize;
