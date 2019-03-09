@@ -132,6 +132,18 @@ void CaenDigitizer::StartAcquisition(HNDLE hDB)
 	// re-load settings from ODB and set digitzer up (again)
 	fSettings->ReadOdb(hDB);
 	Setup();
+	Calibrate();
+
+	int i;
+	for(i = 0; i < 100 && !CalibrationDone(); ++i) {
+		CalibrationStatus();
+	}
+	if(i == 100) {
+		std::cout<<"gave up waiting for calibration to be done after "<<100<<" tries"<<std::endl;
+	} else {
+		std::cout<<"Calibration is done!"<<std::endl;
+	}
+
 	if(fSettings->RawOutput()) {
 		// open raw output file
 		fRawOutput.open("raw.dat");
@@ -157,12 +169,52 @@ void CaenDigitizer::Calibrate()
 {
 	// calibrate all digitizers
 	int errorCode = 0;
+	// start calibration for each board
 	for(int b = 0; b < fSettings->NumberOfBoards(); ++b) {
 		errorCode = CAEN_DGTZ_Calibrate(fHandle[b]);
 		if(errorCode != 0) {
 			std::cerr<<"Error "<<errorCode<<" when trying to calibrate board "<<b<<", handle "<<fHandle[b]<<std::endl;
 		}
 	}
+}
+
+void CaenDigitizer::CalibrationStatus()
+{
+	// check calibration status for each board
+	for(int b = 0; b < fSettings->NumberOfBoards(); ++b) {
+		std::cout<<"board "<<b<<": ";
+		for(int ch = 0; ch < fSettings->NumberOfChannels(); ++ch) {
+			if((fSettings->ChannelMask(b) & (1<<ch)) != 0) {
+				uint32_t	address = 0x1088 + 0x100*ch;
+				uint32_t data = 0;
+				CAEN_DGTZ_ReadRegister(fHandle[b], address, &data);
+				if((data&0x8) != 0x8) {
+					std::cout<<"-";
+				} else {
+					std::cout<<"+";
+				}
+			}
+		}
+		std::cout<<std::endl;
+	}
+}
+
+bool CaenDigitizer::CalibrationDone()
+{
+	// check if calibration is done for each board
+	for(int b = 0; b < fSettings->NumberOfBoards(); ++b) {
+		for(int ch = 0; ch < fSettings->NumberOfChannels(); ++ch) {
+			if((fSettings->ChannelMask(b) & (1<<ch)) != 0) {
+				uint32_t	address = 0x1088 + 0x100*ch;
+				uint32_t data = 0;
+				CAEN_DGTZ_ReadRegister(fHandle[b], address, &data);
+				if((data&0x8) != 0x8) {
+					return false;
+				}
+			}
+		}
+	}
+	return true;
 }
 
 INT CaenDigitizer::DataReady()

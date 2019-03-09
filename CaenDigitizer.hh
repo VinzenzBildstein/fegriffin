@@ -18,11 +18,13 @@ public:
 	void StopAcquisition();
 	INT  DataReady();
 	uint32_t ReadData(char* event, const char* bankName);
-	void Calibrate();
 
 private:
 	void Setup();
 	void ProgramDigitizer(int board);
+	void Calibrate();
+	void CalibrationStatus();
+	bool CalibrationDone();
 
 	CaenSettings* fSettings;
 

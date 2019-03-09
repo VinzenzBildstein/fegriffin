@@ -19,7 +19,7 @@
 
 #define STRING_LEN      256 // typical length for temporary strings
 #define WORD_LEN         32 // typical length for short tmp strings
-#define MAX_EVT_SIZE 500000 // was originally 500000
+#define MAX_EVT_SIZE 1000000 // was originally 500000
 #define MSG_BUF_SIZE  10000 // for single packet messages
 #define EVTBUFSIZ     65536 // max single event-fragment size is 2*this (ints)
 
@@ -63,7 +63,7 @@ BOOL frontend_call_loop = FALSE;   /* frontend_loop called periodically TRUE */
 int display_period = 0;          /* status page displayed with this freq[ms] */
 int max_event_size = MAX_EVT_SIZE;     /* max event size produced by this frontend */
 int max_event_size_frag = 5 * 1024 * 1024;       /*max for fragmented events */
-int event_buffer_size = 4 * 800000;            /* buffer size to hold events */
+int event_buffer_size = 4 * max_event_size;            /* buffer size to hold events */
 extern HNDLE hDB; // Odb Handle
 
 int frontend_init();                  int frontend_exit();
@@ -72,7 +72,7 @@ int pause_run(int run, char *err);    int resume_run(int run, char *err);
 int frontend_loop(){ return SUCCESS; }
 int read_trigger_event(char *pevent, INT off);
 int read_scalar_event(char *pevent, INT off);
-int read_dt5730_event(char *pevent, INT off);
+int read_caen_event(char *pevent, INT off);
 
 BANK_LIST trigger_bank_list[] = { /* online banks */
    {"GRF4", TID_DWORD, 16, NULL},
@@ -100,7 +100,7 @@ EQUIPMENT equipment[] = {
        EQ_POLLED, 0, "MIDAS",         /* equipment type, EventSource, format */
        TRUE, RO_RUNNING,                              /* enabled?, WhenRead? */
        50, 0, 0, 0,                 /* poll[ms], Evt Lim, SubEvtLim, LogHist */
-       "", "", "",}, read_dt5730_event,                  /* readout routine */
+       "", "", "",}, read_caen_event,                  /* readout routine */
     /*NULL, NULL, trigger_bank_list*/                           /* bank list */
    },
 
@@ -440,7 +440,7 @@ INT poll_event(INT source, INT count, BOOL test)
 
    for(i=0; i<count; i++){
 		// we can't check if there is data w/o reading it. To ensure we don't overwrite what we've read
-		// we wait until read_dt5730_event sets caen_data_available back to false
+		// we wait until read_caen_event sets caen_data_available back to false
 		if( !caen_data_available  && gDigitizer != nullptr) { 
 			caen_data_available = gDigitizer->DataReady();
 		}
@@ -676,9 +676,9 @@ int read_trigger_event(char *pevent, int off)
    return( read_grifc_event(pevent, grifc_id) ); // return 0; discards event? */
 }
 
-int read_dt5730_event(char *pevent, int off)
+int read_caen_event(char *pevent, int off)
 {
-	//printf("read_dt5730_event, caen_data_available %s\n", caen_data_available?"true":"false");
+	//printf("read_caen_event, caen_data_available %s\n", caen_data_available?"true":"false");
 	if(!caen_data_available) {
 		return 0;
 	}
