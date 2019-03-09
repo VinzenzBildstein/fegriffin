@@ -17,7 +17,7 @@ public:
 	void StartAcquisition(HNDLE hDB);
 	void StopAcquisition();
 	INT  DataReady();
-	uint32_t ReadData(char* event, const char* bankName);
+	bool ReadData(char* event, const char* bankName, const int& maxSize, uint32_t& eventsRead);
 
 private:
 	void Setup();

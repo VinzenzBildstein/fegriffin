@@ -678,6 +678,11 @@ int read_trigger_event(char *pevent, int off)
 
 int read_caen_event(char *pevent, int off)
 {
+	// The CaenDigitizer::ReadData function will take events out of the buffer
+	// which was filled by CaenDigitizer::DataReady and return whether the buffer
+	// still has events left.
+	// Arguments for it are the midas event buffer, the bank name, the maximum size
+	// to write to the midas buffer, and sets the number of events read
 	//printf("read_caen_event, caen_data_available %s\n", caen_data_available?"true":"false");
 	if(!caen_data_available) {
 		return 0;
@@ -685,8 +690,7 @@ int read_caen_event(char *pevent, int off)
    bk_init(pevent);
 
 	uint32_t nofEvents = 0;
-   if(gDigitizer != nullptr) nofEvents = gDigitizer->ReadData(pevent, "CAEN");
-	caen_data_available = false;
+   if(gDigitizer != nullptr) caen_data_available = gDigitizer->ReadData(pevent, "CAEN", max_event_size, nofEvents);
 
 	if(nofEvents > 1) {
 		SERIAL_NUMBER(pevent) += nofEvents - 1;

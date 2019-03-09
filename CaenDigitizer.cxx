@@ -254,46 +254,73 @@ INT CaenDigitizer::DataReady()
 	return FALSE;
 }
 
-uint32_t CaenDigitizer::ReadData(char* event, const char* bankName)
+bool CaenDigitizer::ReadData(char* event, const char* bankName, const int& maxSize, uint32_t& eventsRead)
 {
-	// creates bank at <event> and copies all data from fBuffer to it
+	// creates bank at <event> and copies up to maxSize worth of data from fBuffer to it
+	// sets the number of events read from the buffer via eventsRead and returns if there are any
+	// events left in the buffer.
+	//
 	// no checks for valid events done, nor any identification of board/channel???
 	DWORD* data;
 	//check if we have any data
-	int sum = 0;
+	int totalSize = 0;
 	for(int b = 0; b < fSettings->NumberOfBoards(); ++b) {
-		if(fBufferSize[b] >= 0) sum += fBufferSize[b];
-		else std::cerr<<"buffer size of board "<<b<<" is negative: "<<fBufferSize[b]<<std::endl;
+		if(fBufferSize[b] >= 0) {
+			totalSize += fBufferSize[b];
+		} else {
+			std::cerr<<"buffer size of board "<<b<<" is negative: "<<fBufferSize[b]<<std::endl;
+			fBufferSize[b] = 0;
+		}
 	}
-	if(sum == 0) {
+	if(totalSize == 0) {
 		std::cout<<__PRETTY_FUNCTION__<<": no data"<<std::endl;
-		return 0;
+		return false; // had no data, so there is none left either
 	}
 	//create bank - returns pointer to data area of bank
 	bk_create(event, bankName, TID_DWORD, reinterpret_cast<void**>(&data));
-	//copy all events from fBuffer to data
-	uint32_t sumEvents = 0;
+	//check if we can copy all events from fBuffer to data
+	int sizeRead = 0;
+	eventsRead = 0;
 	if(fDebug) std::cout<<"#events read: ";
-	for(int b = 0; b < fSettings->NumberOfBoards(); ++b) {
+	int b;
+	for(b = 0; b < fSettings->NumberOfBoards(); ++b) {
 		if(fBufferSize[b] == 0) continue;
+		if(fBufferSize[b] > static_cast<size_t>(maxSize)) {
+			std::cout<<"Can't fit board buffer of "<<fBufferSize[b]<<" bytes into maximum size of "<<maxSize<<" bytes, discarding this buffer!"<<std::endl;
+			fBufferSize[b] = 0; // prevent us from warning about this again
+			continue;
+		}
+		if(fBufferSize[b] + sizeRead > static_cast<size_t>(maxSize)) {
+			break;
+		}
+		// at this stage we know that this boards buffer will fit in the rest of the event buffer
 		//copy buffer of this board
 		std::memcpy(data, fBuffer[b], fBufferSize[b]);
 		data += fBufferSize[b]/sizeof(DWORD);
 		if(fRawOutput.is_open()) {
 			fRawOutput.write(fBuffer[b], fBufferSize[b]);
 		}
+		// we're done reading this boards buffer, so we set it's size to zero
+		// to prevent copying it again if this function fails to write all board
+		// buffers into a single midas event
+		fBufferSize[b] = 0;
 
-		uint32_t numEvents;
-		CAEN_DGTZ_GetNumEvents(fHandle[b], fBuffer[b], fBufferSize[b], &numEvents);
+		uint32_t numEvents = 1;
+		//CAEN_DGTZ_GetNumEvents(fHandle[b], fBuffer[b], fBufferSize[b], &numEvents);
+		//CAEN_DGTZ_GetNumEvents won't work, have to use either CAEN_DGTZ_GetDPPEvents which 
+		//requires previous call to MallocDPPEvents or a custom function
 		if(fDebug) std::cout<<"board "<<b<<": "<<std::setw(8)<<numEvents<<" ";
-		sumEvents += numEvents;
+		eventsRead += numEvents;
 	}
-	if(fDebug) std::cout<<"total: "<<std::setw(8)<<sumEvents<<std::endl;
+	if(fDebug) std::cout<<"total: "<<std::setw(8)<<eventsRead<<std::endl;
 	
 	//close bank
 	bk_close(event, data);
 
-	return sumEvents;
+	// we only have events left in the buffers if the above loop
+	// was broken out of
+
+	return (b != fSettings->NumberOfBoards());
 }
 
 void CaenDigitizer::ProgramDigitizer(int b)
