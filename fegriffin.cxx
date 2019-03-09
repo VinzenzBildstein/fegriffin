@@ -12,7 +12,6 @@
 #include <time.h>       /* select */
 #include "midas.h"
 #include "experim.h"
-#include "tig4g.h"
 #include "grifc.h"
 
 #include "CaenDigitizer.hh"
@@ -669,7 +668,7 @@ INT read_scalar_event(char *pevent, INT off)
 // -> read_trigger_event() -> read_grifc_event() - re-buffers into midas events
 //                         -> grifc_eventread()  - returns single grif fragment
 //                         -> grifc_dataread()   - returns single net-pkt
-int read_grifc_event(char *pevent, int tig4g_id);
+int read_grifc_event(char *pevent, int grifc_id);
 int read_trigger_event(char *pevent, int off)
 {
    static int grifc_id=0;

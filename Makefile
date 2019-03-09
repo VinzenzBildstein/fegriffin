@@ -44,6 +44,6 @@ fegriffin: $(MIDASLIBS) fegriffin.o $(MODULES) CaenSettings.o CaenDigitizer.o
 	$(CXX) $(CXXFLAGS) $(OSFLAGS) -c $<
 
 clean::
-	-rm -f *.o *.exe
+	-rm -f *.o *.exe fegriffin
 
 # end
