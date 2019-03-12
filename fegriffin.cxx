@@ -298,7 +298,7 @@ int frontend_init()
 	//}
 
    delete gDigitizer;
-   gDigitizer = new CaenDigitizer(hDB);
+   gDigitizer = new CaenDigitizer(hDB, false);
    printf("done\n");
 
    return SUCCESS;

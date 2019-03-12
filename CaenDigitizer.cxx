@@ -66,10 +66,10 @@ void CaenDigitizer::Setup()
 					throw std::runtime_error(format("Error %d when reading digitizer info", errorCode));
 				}
 #ifdef USE_CURSES
-				printw("\nConnected to CAEN Digitizer Model %s as %d. board\n", boardInfo.ModelName, b);
+				printw("\nConnected to CAEN Digitizer Model %s serial number %d as %d. board\n", boardInfo.ModelName, boardInfo.SerialNumber, b);
 				printw("\nFirmware is ROC %s, AMC %s\n", boardInfo.ROC_FirmwareRel, boardInfo.AMC_FirmwareRel);
 #else
-				std::cout<<std::endl<<"Connected to CAEN Digitizer Model "<<boardInfo.ModelName<<" as "<<b<<". board"<<std::endl;
+				std::cout<<std::endl<<"Connected to CAEN Digitizer Model "<<boardInfo.ModelName<<" serial number "<<boardInfo.SerialNumber<<" as "<<b<<". board"<<std::endl;
 				std::cout<<std::endl<<"Firmware is ROC "<<boardInfo.ROC_FirmwareRel<<", AMC "<<boardInfo.AMC_FirmwareRel<<std::endl;
 #endif
 
@@ -227,9 +227,6 @@ INT CaenDigitizer::DataReady()
 	int errorCode = 0;
 
 	// read data
-	if(fDebug) {
-		std::cout<<"--------------------------------------------------------------------------------"<<std::endl;
-	}
 	bool gotData = false;
 	for(int b = 0; b < fSettings->NumberOfBoards(); ++b) {
 		errorCode = CAEN_DGTZ_ReadData(fHandle[b], CAEN_DGTZ_SLAVE_TERMINATED_READOUT_MBLT, fBuffer[b], &fBufferSize[b]);
@@ -237,16 +234,12 @@ INT CaenDigitizer::DataReady()
 			//std::cerr<<"Error "<<errorCode<<" when reading data from board "<<b<<std::endl;
 			return FALSE;
 		}
-		if(fDebug) {
-			std::cout<<"Read "<<fBufferSize[b]<<" bytes"<<std::endl;
-		}
 		if(fBufferSize[b] > 0) {
-			//std::cout<<std::endl<<__PRETTY_FUNCTION__<<": got "<<fBufferSize[b]<<" bytes from board "<<b<<std::endl;
+			if(fDebug) {
+				std::cout<<"Read "<<fBufferSize[b]<<" bytes from board "<<b<<std::endl;
+			}
 			gotData = true;
 		}
-	}
-	if(fDebug) {
-		std::cout<<"----------------------------------------"<<std::endl;
 	}
 
 	// this is necessary because TRUE and FALSE are not booleans ...
@@ -300,17 +293,20 @@ bool CaenDigitizer::ReadData(char* event, const char* bankName, const int& maxSi
 		if(fRawOutput.is_open()) {
 			fRawOutput.write(fBuffer[b], fBufferSize[b]);
 		}
+
+		//uint32_t numEvents = 1;
+		//CAEN_DGTZ_GetNumEvents(fHandle[b], fBuffer[b], fBufferSize[b], &numEvents);
+		//CAEN_DGTZ_GetNumEvents won't work, have to use either CAEN_DGTZ_GetDPPEvents which 
+		//requires previous call to MallocDPPEvents or a custom function
+		//if(fDebug) std::cout<<"board "<<b<<": "<<std::setw(8)<<numEvents<<" ";
+		//eventsRead += numEvents;
+		eventsRead += GetNumberOfEvents(fBuffer[b], fBufferSize[b]);
+		if(fDebug) std::cout<<"board "<<b<<": total number of events read is "<<eventsRead<<" from buffer size "<<fBufferSize[b]<<std::endl;
+		
 		// we're done reading this boards buffer, so we set it's size to zero
 		// to prevent copying it again if this function fails to write all board
 		// buffers into a single midas event
 		fBufferSize[b] = 0;
-
-		uint32_t numEvents = 1;
-		//CAEN_DGTZ_GetNumEvents(fHandle[b], fBuffer[b], fBufferSize[b], &numEvents);
-		//CAEN_DGTZ_GetNumEvents won't work, have to use either CAEN_DGTZ_GetDPPEvents which 
-		//requires previous call to MallocDPPEvents or a custom function
-		if(fDebug) std::cout<<"board "<<b<<": "<<std::setw(8)<<numEvents<<" ";
-		eventsRead += numEvents;
 	}
 	if(fDebug) std::cout<<"total: "<<std::setw(8)<<eventsRead<<std::endl;
 	
@@ -321,6 +317,76 @@ bool CaenDigitizer::ReadData(char* event, const char* bankName, const int& maxSi
 	// was broken out of
 
 	return (b != fSettings->NumberOfBoards());
+}
+
+uint32_t CaenDigitizer::GetNumberOfEvents(char* fBuffer, uint32_t fBufferSize)
+{
+	uint32_t numEvents = 0;
+	uint32_t w = 0;
+	uint32_t* data = reinterpret_cast<uint32_t*>(fBuffer);
+	while(w < fBufferSize) {
+		//read board aggregate header
+		if(data[w]>>28 != 0xa) {
+			// wrong format, let's just return zero for now
+			if(fDebug) { 
+				std::cout<<w<<": wrong aggregate header word 0x"<<std::hex<<data[w]<<std::dec<<std::endl;
+				for(w=0;w<fBufferSize;++w) {
+					std::cout<<"0x"<<std::hex<<std::setfill('0')<<std::setw(8)<<data[w]<<std::dec<<" ";
+					if(w%8 == 7) std::cout<<std::endl;
+				}
+			}
+			return numEvents;
+		}
+		int32_t numWordsBoard = data[w]&0xfffffff;
+		if(w + numWordsBoard > fBufferSize) {
+			// we're missing words, return zero for now
+			if(fDebug) std::cout<<w<<": missing words, should get "<<numWordsBoard<<" from size "<<fBufferSize<<std::endl;
+			return numEvents;
+		}
+		if(fDebug) std::cout<<w<<": got "<<numWordsBoard<<" words in board"<<std::endl;
+
+		//read the channel mask
+		++w;
+		uint8_t channelMask = data[w]&0xff;
+
+		if(fDebug) std::cout<<w<<": got channel mask 0x"<<std::hex<<static_cast<int>(channelMask)<<std::dec<<std::endl;
+		//skip the next two words
+		w += 2;
+		// loop over all active channels and read their channel aggregate header
+		for(uint8_t channel = 0; channel < 16; channel += 2) {
+			if(((channelMask>>(channel/2)) & 0x1) == 0x0) continue;
+			++w;
+			if(data[w]>>31 != 0x1) {
+				//failed to find the right channel header
+				if(fDebug) std::cout<<w<<": wrong channel header word 0x"<<std::hex<<data[w]<<std::dec<<std::endl;
+				return numEvents;
+			}
+			int32_t numWordsChannel = data[w]&0x3fffff;
+			if(fDebug) std::cout<<static_cast<int>(channel)<<", "<<w<<": got numWordsChannel "<<numWordsChannel<<std::endl;
+
+			//read the format and number of waveform samples
+			++w;
+			if(((data[w]>>29) & 0x3) != 0x3) {
+				//bits 29&30 should be set
+				if(fDebug) std::cout<<w<<": wrong format word 0x"<<std::hex<<data[w]<<std::dec<<std::endl;
+				return numEvents;
+			}
+			//this is nofSample/8, 2 samples/word => *4
+			//+2 for trigger time and charge words
+			int eventSize = 4*(data[w]&0xffff) + 2;
+			//extra word enabled?
+			if(((data[w]>>28) & 0x1) == 0x1) ++eventSize;
+			//we should have (numWordsChannel-2)/eventSize hits from this board
+			//-2 for the 2 header words of the channel aggregate
+			if(fDebug) std::cout<<static_cast<int>(channel)<<", "<<w<<": got "<<numWordsChannel-2<<"/"<<eventSize<<"; "<<numEvents<<", "<<w<<" => ";
+			numEvents += (numWordsChannel-2)/eventSize;
+			//skip these words to get to the next channel aggregate header (minus the channel header we've already read)
+			w += numWordsChannel-1;
+			if(fDebug) std::cout<<numEvents<<", "<<w<<std::endl;
+		}
+	}
+	if(fDebug) std::cout<<w<<": got "<<numEvents<<" events from buffer of size "<<fBufferSize<<std::endl;
+	return numEvents;
 }
 
 void CaenDigitizer::ProgramDigitizer(int b)

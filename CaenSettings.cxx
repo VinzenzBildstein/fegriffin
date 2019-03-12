@@ -18,20 +18,23 @@
 
 #include "CaenOdb.h"
 
+// this assumes that the right hand side is the template!!!
 bool operator==(const CAEN_DGTZ_DPP_PSD_Params_t& lh, const CAEN_DGTZ_DPP_PSD_Params_t& rh)
 {
+	for(int i = 0; i < MAX_DPP_PSD_CHANNEL_SIZE; ++i) {
+		if(lh.thr[i] != rh.thr[0]) return false;
+		if(lh.selft[i] != rh.selft[0]) return false;
+		if(lh.csens[i] != rh.csens[0]) return false;
+		if(lh.sgate[i] != rh.sgate[0]) return false;
+		if(lh.lgate[i] != rh.lgate[0]) return false;
+		if(lh.pgate[i] != rh.pgate[0]) return false;
+		if(lh.tvaw[i] != rh.tvaw[0]) return false;
+		if(lh.nsbl[i] != rh.nsbl[0]) return false;
+	}
 	return (lh.blthr == rh.blthr &&
 	        lh.bltmo == rh.bltmo &&
 	        lh.trgho == rh.trgho &&
-	        std::equal(lh.thr,   lh.thr   + sizeof(lh.thr)/sizeof(*(lh.thr)),     rh.thr)   &&
-	        std::equal(lh.selft, lh.selft + sizeof(lh.selft)/sizeof(*(lh.selft)), rh.selft) &&
-	        std::equal(lh.csens, lh.csens + sizeof(lh.csens)/sizeof(*(lh.csens)), rh.csens) &&
-	        std::equal(lh.sgate, lh.sgate + sizeof(lh.sgate)/sizeof(*(lh.sgate)), rh.sgate) &&
-	        std::equal(lh.lgate, lh.lgate + sizeof(lh.lgate)/sizeof(*(lh.lgate)), rh.lgate) &&
-	        std::equal(lh.pgate, lh.pgate + sizeof(lh.pgate)/sizeof(*(lh.pgate)), rh.pgate) &&
-	        std::equal(lh.tvaw,  lh.tvaw  + sizeof(lh.tvaw)/sizeof(*(lh.tvaw)),   rh.tvaw)  &&
-	        std::equal(lh.nsbl,  lh.nsbl  + sizeof(lh.nsbl)/sizeof(*(lh.nsbl)),   rh.nsbl)  &&
-	        lh.trgc  == rh.trgc  &&
+	        //lh.trgc  == rh.trgc  && //this parameter is deprecated, no need to check it
 	        lh.purh  == rh.purh  &&
 	        lh.purgap  == rh.purgap);
 }
@@ -587,12 +590,6 @@ void BoardSettings::Print(const BoardSettings& templateSettings)
 			continue;
 		}
 		std::cout<<"   Channel #"<<ch<<" custom settings:"<<std::endl;
-		if(fChannelSettings[ch] == templateSettings.ChannelSettingsVector().at(0)) {
-			std::cout<<"same channel settings"<<std::endl;
-		}
-		if(fChannelParameter == *(templateSettings.ChannelParameter())) {
-			std::cout<<"same channel parameter"<<std::endl;
-		}
 		fChannelSettings[ch].Print(templateSettings.ChannelSettingsVector().at(0));
 		if(fChannelParameter.thr[ch] != templateSettings.ChannelParameter()->thr[0]) {
 			std::cout<<"      threshold "<<fChannelParameter.thr[ch]<<std::endl;

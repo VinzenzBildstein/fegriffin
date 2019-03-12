@@ -25,6 +25,7 @@ private:
 	void Calibrate();
 	void CalibrationStatus();
 	bool CalibrationDone();
+	uint32_t GetNumberOfEvents(char* fBuffer, uint32_t fBufferSize);
 
 	CaenSettings* fSettings;
 
