@@ -280,7 +280,7 @@ bool CaenDigitizer::ReadData(char* event, const char* bankName, const int& maxSi
 		if(fBufferSize[b] == 0) continue;
 		if(fBufferSize[b] > static_cast<size_t>(maxSize)) {
 			std::cout<<"Can't fit board buffer of "<<fBufferSize[b]<<" bytes into maximum size of "<<maxSize<<" bytes, discarding this buffer!"<<std::endl;
-			fBufferSize[b] = 0; // prevent us from warning about this again
+			fBufferSize[b] = 0; // prevent us from trying/warning about this again
 			continue;
 		}
 		if(fBufferSize[b] + sizeRead > static_cast<size_t>(maxSize)) {
@@ -294,12 +294,6 @@ bool CaenDigitizer::ReadData(char* event, const char* bankName, const int& maxSi
 			fRawOutput.write(fBuffer[b], fBufferSize[b]);
 		}
 
-		//uint32_t numEvents = 1;
-		//CAEN_DGTZ_GetNumEvents(fHandle[b], fBuffer[b], fBufferSize[b], &numEvents);
-		//CAEN_DGTZ_GetNumEvents won't work, have to use either CAEN_DGTZ_GetDPPEvents which 
-		//requires previous call to MallocDPPEvents or a custom function
-		//if(fDebug) std::cout<<"board "<<b<<": "<<std::setw(8)<<numEvents<<" ";
-		//eventsRead += numEvents;
 		eventsRead += GetNumberOfEvents(fBuffer[b], fBufferSize[b]);
 		if(fDebug) std::cout<<"board "<<b<<": total number of events read is "<<eventsRead<<" from buffer size "<<fBufferSize[b]<<std::endl;
 		
@@ -319,18 +313,18 @@ bool CaenDigitizer::ReadData(char* event, const char* bankName, const int& maxSi
 	return (b != fSettings->NumberOfBoards());
 }
 
-uint32_t CaenDigitizer::GetNumberOfEvents(char* fBuffer, uint32_t fBufferSize)
+uint32_t CaenDigitizer::GetNumberOfEvents(char* buffer, uint32_t bufferSize)
 {
 	uint32_t numEvents = 0;
 	uint32_t w = 0;
-	uint32_t* data = reinterpret_cast<uint32_t*>(fBuffer);
-	while(w < fBufferSize) {
+	uint32_t* data = reinterpret_cast<uint32_t*>(buffer);
+	while(w < bufferSize) {
 		//read board aggregate header
 		if(data[w]>>28 != 0xa) {
 			// wrong format, let's just return zero for now
 			if(fDebug) { 
 				std::cout<<w<<": wrong aggregate header word 0x"<<std::hex<<data[w]<<std::dec<<std::endl;
-				for(w=0;w<fBufferSize;++w) {
+				for(w=0;w<bufferSize;++w) {
 					std::cout<<"0x"<<std::hex<<std::setfill('0')<<std::setw(8)<<data[w]<<std::dec<<" ";
 					if(w%8 == 7) std::cout<<std::endl;
 				}
@@ -338,9 +332,9 @@ uint32_t CaenDigitizer::GetNumberOfEvents(char* fBuffer, uint32_t fBufferSize)
 			return numEvents;
 		}
 		int32_t numWordsBoard = data[w]&0xfffffff;
-		if(w + numWordsBoard > fBufferSize) {
+		if(w + numWordsBoard > bufferSize) {
 			// we're missing words, return zero for now
-			if(fDebug) std::cout<<w<<": missing words, should get "<<numWordsBoard<<" from size "<<fBufferSize<<std::endl;
+			if(fDebug) std::cout<<w<<": missing words, should get "<<numWordsBoard<<" from size "<<bufferSize<<std::endl;
 			return numEvents;
 		}
 		if(fDebug) std::cout<<w<<": got "<<numWordsBoard<<" words in board"<<std::endl;
@@ -353,9 +347,10 @@ uint32_t CaenDigitizer::GetNumberOfEvents(char* fBuffer, uint32_t fBufferSize)
 		//skip the next two words
 		w += 2;
 		// loop over all active channels and read their channel aggregate header
-		for(uint8_t channel = 0; channel < 16; channel += 2) {
+		for(uint8_t channel = 0; channel < 16 && w < bufferSize; channel += 2) {
 			if(((channelMask>>(channel/2)) & 0x1) == 0x0) continue;
 			++w;
+			if(w >= bufferSize) { std::cout<<channel<<": "<<w<<" >= "<<bufferSize<<std::endl; return numEvents; } 
 			if(data[w]>>31 != 0x1) {
 				//failed to find the right channel header
 				if(fDebug) std::cout<<w<<": wrong channel header word 0x"<<std::hex<<data[w]<<std::dec<<std::endl;
@@ -366,6 +361,7 @@ uint32_t CaenDigitizer::GetNumberOfEvents(char* fBuffer, uint32_t fBufferSize)
 
 			//read the format and number of waveform samples
 			++w;
+			if(w >= bufferSize) { std::cout<<channel<<": "<<w<<" >= "<<bufferSize<<std::endl; return numEvents; } 
 			if(((data[w]>>29) & 0x3) != 0x3) {
 				//bits 29&30 should be set
 				if(fDebug) std::cout<<w<<": wrong format word 0x"<<std::hex<<data[w]<<std::dec<<std::endl;
@@ -385,7 +381,7 @@ uint32_t CaenDigitizer::GetNumberOfEvents(char* fBuffer, uint32_t fBufferSize)
 			if(fDebug) std::cout<<numEvents<<", "<<w<<std::endl;
 		}
 	}
-	if(fDebug) std::cout<<w<<": got "<<numEvents<<" events from buffer of size "<<fBufferSize<<std::endl;
+	if(fDebug) std::cout<<w<<": got "<<numEvents<<" events from buffer of size "<<bufferSize<<std::endl;
 	return numEvents;
 }
 

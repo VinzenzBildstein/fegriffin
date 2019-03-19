@@ -200,7 +200,8 @@ int frontend_init()
    if(      strcmp(tmp_str, "grifip09") == 0 ||
             strcmp(tmp_str, "grifloc" ) == 0){ master_grifc=1; }
    else if( strcmp(tmp_str, "grifip07") == 0 ||
-            strcmp(tmp_str, "grifip08") == 0 ){ slave_grifc =1; }
+            strcmp(tmp_str, "grifip08") == 0 ||
+            strcmp(tmp_str, "grifip06") == 0 ){ slave_grifc =1; }
    else if( strcmp(tmp_str, "grifadc01") == 0 ||
             strcmp(tmp_str, "grifadc02") == 0 ||
             strcmp(tmp_str, "grifadc03") == 0 ||
@@ -291,11 +292,6 @@ int frontend_init()
       status = sndmsg(cmd_socket, &cmd_addr, msgbuf, 12, replybuf);
       printf("   Write Network Packet Size      [%d], reply:%d bytes\n", par, status);
    }
-
-	//if(hDB == nullptr) {
-	//	std::cout<<"No handle for ODB, aborting"<<std::endl;
-	//	exit(0);
-	//}
 
    delete gDigitizer;
    gDigitizer = new CaenDigitizer(hDB, false);
@@ -588,7 +584,7 @@ int test_settings()
 #define GRIF16_CHAN 16
 #define GRIF16_PORT 80
 //#define GRIF16_NUM  5
-#define GRIF16_NUM  12
+#define GRIF16_NUM  37
 
 #define TICKS_PER_S 24414.0625 // tick=10ns*4096=41us => 24k ticks/s
 // times are 28+16=44bits with 8bits overlap in event trailer
@@ -645,10 +641,23 @@ INT read_scalar_event(char *pevent, INT off)
          val  = TICKS_PER_S * cdiff / ((tdiff > 0) ? 1.0*tdiff : -1.0*tdiff);
 	 *(pdata++) = val;
 
-	 //new arrangement using x10 Rev1 GRIF-16s. All HPGe are still on collector 0, SCEPTAR on collector 0
-	 if(module<4 ){ EPICS_Rates[0] += val; } 								// HPGe array low gain rate
-	 if(module>=4 && module<8 ){ EPICS_Rates[12] += val; } 	// HPGe array high gain rate
-	 if(module==8){ EPICS_Rates[1] += val; } 		// beta rate (SCEPTAR+ZDS)
+	 //Rev2 GRIF-16s, HPGe and shields
+	 if(module%2==0 && module<32 && chan<4 ){ EPICS_Rates[0]  += val; } 	// HPGe array low gain rate
+	 if(module%2==1 && module<32 && chan<4 ){ EPICS_Rates[12] += val; } 	// HPGe array high gain rate
+	 if(module==32){ EPICS_Rates[1] += val; } 		                // Downstream half of beta rate (SCEPTAR+ZDS)
+	 //if(module==33 && chan<11){ EPICS_Rates[1] += val; } 		        // Upstream half of beta rate (SCEPTAR)
+	 if((module==34 || module==35) && chan<4){ EPICS_Rates[2] += val; } 	// LaBr3 detector rate
+	 if(module==36){ EPICS_Rates[11] += val; } 	                        // LaBr3 TAC rate
+	 if(module==33 && chan>10){ EPICS_Rates[3] += val; } 	                // PACES rate (sum)
+	 if(module==33 && chan==14){ EPICS_Rates[5] += val; } 	                // PACES#4 rate
+	 if(module==33 && chan==15){ EPICS_Rates[6] += val; } 	                // PACES#5 rate
+	 //Individual Clover rates
+	 if(module==0 && chan==0 ){  EPICS_Rates[7]  += val; } 	// HPGe01-B low gain rate
+	 if(module==8 && chan==4 ){  EPICS_Rates[8]  += val; } 	// HPGe05-B low gain rate
+	 //if(module==4 && chan<4 ){  EPICS_Rates[6]  += val; } 	// HPGe03 low gain rate
+	 //if(module==10 && chan<4 ){ EPICS_Rates[8]  += val; } 	// HPGe09 low gain rate
+	 //if(module==16 && chan<4 ){ EPICS_Rates[9]  += val; } 	// HPGe12 low gain rate
+	 //if(module==22 && chan<4 ){ EPICS_Rates[10] += val; } 	// HPGe15 low gain rate
       }
       *(pdata++) = 0xE0000FFF | (module << 12);
    }
