@@ -684,6 +684,8 @@ int read_trigger_event(char *pevent, int off)
    return( read_grifc_event(pevent, grifc_id) ); // return 0; discards event? */
 }
 
+uint32_t nofCaenEvents = 0; // variable to output number of caen events since last output
+
 int read_caen_event(char *pevent, int off)
 {
 	// The CaenDigitizer::ReadData function will take events out of the buffer
@@ -702,6 +704,7 @@ int read_caen_event(char *pevent, int off)
 
 	if(nofEvents > 1) {
 		SERIAL_NUMBER(pevent) += nofEvents - 1;
+		nofCaenEvents += nofEvents;
 	}
 
    return bk_size(pevent);
@@ -719,7 +722,7 @@ int read_grifc_event(char *pevent, int grifc_id)
 {
    static int i_bar, lastev_count, ev_count, update_cnt, multi_cnt;
    int *pdata, *ptr, words, pkt_num=0, type, serial, header, word_count; 
-   static int lastpkt_count, lastmid_count, mid_count;
+   static int lastpkt_count = -1, lastmid_count, mid_count;
    time_t curr_time = time(NULL);
    //if( last_event_update == -1 ){ last_event_update = curr_time; }
 
@@ -781,12 +784,15 @@ int read_grifc_event(char *pevent, int grifc_id)
       printf(" %c -", progress[i_bar++%4] );
       printf(" Midas :%8d[%6d/s]", serial, mid_count - lastmid_count );
       printf(" - Frag:%6d/s", ev_count-lastev_count );
-      printf(" - Pkt:%6d/s", pkt_num-lastpkt_count );
+      if((pkt_num&0xfffffff) >= lastpkt_count && lastpkt_count != -1) printf(" - Pkt:%6d/s", (pkt_num&0xfffffff)-lastpkt_count );
+		else printf(" - Pkt:     0/s");
+		printf(" ---- CAEN:%6d/s", nofCaenEvents);
       printf("          %c", ( (i_bar % 1000) ) ? '\r' : '\n' );
       last_event_update = curr_time;
       lastev_count = ev_count;
-      lastpkt_count = pkt_num;
+      if(pkt_num != 0) lastpkt_count = pkt_num&0xfffffff;
       lastmid_count = mid_count;
+		nofCaenEvents = 0;
       if( !(++update_cnt % UPDATE_INTERVAL) && check_data ){
          report_counts(UPDATE_INTERVAL);
       }
