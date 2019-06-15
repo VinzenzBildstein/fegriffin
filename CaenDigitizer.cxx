@@ -43,6 +43,8 @@ void CaenDigitizer::Setup()
 		// we have more boards now than before, so we need to initialize the additional boards
 		try {
 			fHandle.resize(fSettings->NumberOfBoards(), -1);
+			fPort.resize(fSettings->NumberOfBoards(), -1);
+			fDevice.resize(fSettings->NumberOfBoards(), -1);
 			fBuffer.resize(fSettings->NumberOfBoards(), NULL);
 			fBufferSize.resize(fSettings->NumberOfBoards(), 0);
 			fWaveforms.resize(fSettings->NumberOfBoards(), NULL);
@@ -50,38 +52,42 @@ void CaenDigitizer::Setup()
 			std::cerr<<"Failed to resize vectors for "<<fSettings->NumberOfBoards()<<" boards, and "<<fSettings->NumberOfChannels()<<" channels: "<<e.what()<<std::endl;
 			throw e;
 		}
-		for(int b = 0; b < fSettings->NumberOfBoards(); ++b) {
-			if(fHandle[b] == -1) {
-				if(fDebug) std::cout<<"setting up board "<<b<<std::endl;
-				// open digitizers
-				errorCode = CAEN_DGTZ_OpenDigitizer(fSettings->LinkType(b), fSettings->PortNumber(b), fSettings->DeviceNumber(b), fSettings->VmeBaseAddress(b), &fHandle[b]);
-				if(errorCode != 0) {
-					throw std::runtime_error(format("Error %d when opening digitizer", errorCode));
-				}
-				if(fDebug) std::cout<<"got handle "<<fHandle[b]<<" for board "<<b<<std::endl;
-				// get digitizer info
-				errorCode = CAEN_DGTZ_GetInfo(fHandle[b], &boardInfo);
-				if(errorCode != 0) {
-					CAEN_DGTZ_CloseDigitizer(fHandle[b]);
-					throw std::runtime_error(format("Error %d when reading digitizer info", errorCode));
-				}
+	}
+	for(int b = 0; b < fSettings->NumberOfBoards(); ++b) {
+		if(fHandle[b] == -1 || fPort[b] != fSettings->PortNumber(b) || fDevice[b] != fSettings->DeviceNumber(b)) {
+			if(fDebug) std::cout<<"setting up board "<<b<<std::endl;
+			// open digitizers
+			errorCode = CAEN_DGTZ_OpenDigitizer(fSettings->LinkType(b), fSettings->PortNumber(b), fSettings->DeviceNumber(b), fSettings->VmeBaseAddress(b), &fHandle[b]);
+			fPort[b] = fSettings->PortNumber(b);
+			fDevice[b] = fSettings->DeviceNumber(b);
+			if(errorCode != 0) {
+				throw std::runtime_error(format("Error %d when opening %d. digitizer using port %d, device %d", errorCode, b, fPort[b], fDevice[b]));
+			}
+			if(fDebug) std::cout<<"got handle "<<fHandle[b]<<" for board "<<b<<std::endl;
+			// get digitizer info
+			errorCode = CAEN_DGTZ_GetInfo(fHandle[b], &boardInfo);
+			if(errorCode != 0) {
+				CAEN_DGTZ_CloseDigitizer(fHandle[b]);
+				throw std::runtime_error(format("Error %d when reading digitizer info", errorCode));
+			}
 #ifdef USE_CURSES
-				printw("\nConnected to CAEN Digitizer Model %s serial number %d as %d. board\n", boardInfo.ModelName, boardInfo.SerialNumber, b);
-				printw("\nFirmware is ROC %s, AMC %s\n", boardInfo.ROC_FirmwareRel, boardInfo.AMC_FirmwareRel);
+			printw("\nConnected to CAEN Digitizer Model %s serial number %d as %d. board\n", boardInfo.ModelName, boardInfo.SerialNumber, b);
+			printw("\nFirmware is ROC %s, AMC %s\n", boardInfo.ROC_FirmwareRel, boardInfo.AMC_FirmwareRel);
 #else
-				std::cout<<std::endl<<"Connected to CAEN Digitizer Model "<<boardInfo.ModelName<<" serial number "<<boardInfo.SerialNumber<<" as "<<b<<". board"<<std::endl;
-				std::cout<<std::endl<<"Firmware is ROC "<<boardInfo.ROC_FirmwareRel<<", AMC "<<boardInfo.AMC_FirmwareRel<<std::endl;
+			std::cout<<std::endl<<"Connected to CAEN Digitizer Model "<<boardInfo.ModelName<<" serial number "<<boardInfo.SerialNumber<<" as "<<b<<". board, using port "<<fPort[b]<<", device "<<fDevice[b]<<std::endl;
+			std::cout<<std::endl<<"Firmware is ROC "<<boardInfo.ROC_FirmwareRel<<", AMC "<<boardInfo.AMC_FirmwareRel<<std::endl;
 #endif
 
-				std::stringstream str(boardInfo.AMC_FirmwareRel);
-				str>>majorNumber;
-				if(majorNumber != 131 && majorNumber != 132 && majorNumber != 136) {
-					CAEN_DGTZ_CloseDigitizer(fHandle[b]);
-					throw std::runtime_error("This digitizer has no DPP-PSD firmware");
-				}
-			} // if(fHandle[b] == -1)
+			std::stringstream str(boardInfo.AMC_FirmwareRel);
+			str>>majorNumber;
+			if(majorNumber != 131 && majorNumber != 132 && majorNumber != 136) {
+				CAEN_DGTZ_CloseDigitizer(fHandle[b]);
+				throw std::runtime_error("This digitizer has no DPP-PSD firmware");
+			}
+		} else {// if(fHandle[b] == -1)
+			std::cout<<"Re-using handle for port "<<fPort[b]<<"/"<<fSettings->PortNumber(b)<<", devkce "<<fDevice[b]<<"/"<<fSettings->DeviceNumber(b)<<std::endl;
 		}
-	} // if(fHandle.size() < fSettings->NumberOfBoards)
+	}
 
 	// we always re-program the digitizer in case settings have been changed
 	for(int b = 0; b < fSettings->NumberOfBoards(); ++b) {
@@ -296,14 +302,14 @@ bool CaenDigitizer::ReadData(char* event, const char* bankName, const int& maxSi
 
 		eventsRead += GetNumberOfEvents(fBuffer[b], fBufferSize[b]);
 		if(fDebug) std::cout<<"board "<<b<<": total number of events read is "<<eventsRead<<" from buffer size "<<fBufferSize[b]<<std::endl;
-		
+
 		// we're done reading this boards buffer, so we set it's size to zero
 		// to prevent copying it again if this function fails to write all board
 		// buffers into a single midas event
 		fBufferSize[b] = 0;
 	}
 	if(fDebug) std::cout<<"total: "<<std::setw(8)<<eventsRead<<std::endl;
-	
+
 	//close bank
 	bk_close(event, data);
 
@@ -522,3 +528,32 @@ void CaenDigitizer::ProgramDigitizer(int b)
 	if(fDebug) std::cout<<"done with digitizer "<<b<<std::endl;
 }
 
+void CaenDigitizer::PrintAggregatesPerBlt()
+{
+	uint32_t address = 0xef1c;
+	uint32_t data;
+
+	std::cout<<"Aggregates per BLT: ";
+	for(int b = 0; b < fSettings->NumberOfBoards(); ++b) {
+		CAEN_DGTZ_ReadRegister(fHandle[b], address, &data);
+		std::cout<<b<<" - "<<(data&0x3ff)<<"; ";
+	}
+	std::cout<<std::endl;
+}
+
+void CaenDigitizer::PrintEventsPerAggregate()
+{
+	uint32_t address;
+	uint32_t data;
+
+	std::cout<<"Events per aggregate:"<<std::endl;
+	for(int b = 0; b < fSettings->NumberOfBoards(); ++b) {
+		std::cout<<b<<": ";
+		for(int ch = 0; ch < fSettings->NumberOfChannels(); ch += 2) {
+			address = 0x1034 + ch*0x100;
+			CAEN_DGTZ_ReadRegister(fHandle[b], address, &data);
+			std::cout<<ch<<" - "<<(data&0x3ff)<<"; ";
+		}
+		std::cout<<std::endl;
+	}
+}

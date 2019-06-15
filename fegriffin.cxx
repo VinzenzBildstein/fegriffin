@@ -296,6 +296,8 @@ int frontend_init()
    delete gDigitizer;
    gDigitizer = new CaenDigitizer(hDB, false);
    printf("done\n");
+	gDigitizer->PrintEventsPerAggregate();
+	gDigitizer->PrintAggregatesPerBlt();
 
    return SUCCESS;
 }
@@ -339,6 +341,9 @@ int begin_of_run(int run_number, char *error)
    int i;//, status, size;
 
    if(gDigitizer != nullptr) gDigitizer->StartAcquisition(hDB);
+
+	gDigitizer->PrintEventsPerAggregate();
+	gDigitizer->PrintAggregatesPerBlt();
 
    //size = sizeof(TRIGGER_SETTINGS); /* read Triggger settings again ? */
    //if ((status = db_get_record (hDB, hSet, &ts, &size, 0)) != DB_SUCCESS){

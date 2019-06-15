@@ -18,6 +18,8 @@ public:
 	void StopAcquisition();
 	INT  DataReady();
 	bool ReadData(char* event, const char* bankName, const int& maxSize, uint32_t& eventsRead);
+	void PrintAggregatesPerBlt();
+	void PrintEventsPerAggregate();
 
 private:
 	void Setup();
@@ -30,6 +32,8 @@ private:
 	CaenSettings* fSettings;
 
 	std::vector<int> fHandle;
+	std::vector<int> fPort;
+	std::vector<int> fDevice;
 	// raw readout data
 	std::vector<char*>    fBuffer; 
 	std::vector<uint32_t> fBufferSize;
