@@ -25,8 +25,9 @@ std::string format(const std::string& format, ...)
 }
 
 CaenDigitizer::CaenDigitizer(HNDLE hDB, bool debug)
-	: fSettings(new CaenSettings(debug)), fDebug(debug), fSetupDone(false)
-{
+	: fDebug(debug), fSetupDone(false)
+{ 
+	fSettings = new CaenSettings(fDebug);
 	if(fDebug) std::cout<<"Using ODB handle "<<hDB<<std::endl;
 	// only setup digitizers now if we were successful in reading the settings from the ODB
 	if(fSettings->ReadOdb(hDB)) Setup();
@@ -45,9 +46,6 @@ void CaenDigitizer::Setup()
 			fHandle.resize(fSettings->NumberOfBoards(), -1);
 			fPort.resize(fSettings->NumberOfBoards(), -1);
 			fDevice.resize(fSettings->NumberOfBoards(), -1);
-			fBuffer.resize(fSettings->NumberOfBoards(), NULL);
-			fBufferSize.resize(fSettings->NumberOfBoards(), 0);
-			fWaveforms.resize(fSettings->NumberOfBoards(), NULL);
 		} catch(std::exception e) {
 			std::cerr<<"Failed to resize vectors for "<<fSettings->NumberOfBoards()<<" boards, and "<<fSettings->NumberOfChannels()<<" channels: "<<e.what()<<std::endl;
 			throw e;
@@ -85,38 +83,42 @@ void CaenDigitizer::Setup()
 				throw std::runtime_error("This digitizer has no DPP-PSD firmware");
 			}
 		} else {// if(fHandle[b] == -1)
-			std::cout<<"Re-using handle for port "<<fPort[b]<<"/"<<fSettings->PortNumber(b)<<", devkce "<<fDevice[b]<<"/"<<fSettings->DeviceNumber(b)<<std::endl;
+			std::cout<<"Re-using handle for port "<<fPort[b]<<"/"<<fSettings->PortNumber(b)<<", device "<<fDevice[b]<<"/"<<fSettings->DeviceNumber(b)<<std::endl;
 		}
 	}
 
 	// we always re-program the digitizer in case settings have been changed
 	for(int b = 0; b < fSettings->NumberOfBoards(); ++b) {
 		ProgramDigitizer(b);
+		if(fDebug) std::cout<<"done with programming board "<<b<<std::endl;
+	} // for(int b = 0; b < fSettings->NumberOfBoards(); ++b)
 
-		// we don't really need to know how many bytes have been allocated, so we use fBufferSize here
-		free(fBuffer[b]);
+	// find out the max size needed for the buffers
+	fMaxBufferSize = 0;
+	for(int b = 0; b < fSettings->NumberOfBoards(); ++b) {
+		// we don't really need to remember how many bytes have been allocated, so we use fBufferSize here
 		//fBuffer[b] = static_cast<char*>(malloc(100*6504464));
 		//1638416 bytes are allocated by CAEN_DGTZ_MallocReadoutBuffer (2 channels, 192 samples each)
 		//changing this to 8 channels changed the number to 6504464
-		if(fDebug) std::cout<<fHandle[b]<<"/"<<fBuffer.size()<<": trying to allocate memory for readout buffer "<<static_cast<void*>(fBuffer[b])<<std::endl;
-		errorCode = CAEN_DGTZ_MallocReadoutBuffer(fHandle[b], &fBuffer[b], &fBufferSize[b]);
+		if(fDebug) std::cout<<fHandle[b]<<": trying to allocate memory for readout buffer "<<static_cast<void*>(fBuffer)<<std::endl;
+		std::cout<<fHandle[b]<<": trying to allocate memory for readout buffer "<<static_cast<void*>(fBuffer)<<std::endl;
+		errorCode = CAEN_DGTZ_MallocReadoutBuffer(fHandle[b], &fBuffer, &fBufferSize);
 		if(errorCode != 0) {
 			CAEN_DGTZ_CloseDigitizer(fHandle[b]);
 			throw std::runtime_error(format("Error %d when allocating readout buffer", errorCode));
 		}
-		if(fDebug) std::cout<<"allocated "<<fBufferSize[0]<<" bytes of buffer for board "<<b<<std::endl;
-#ifdef USE_WAVEFORMS
-		// allocate waveforms, again not caring how many bytes have been allocated
-		uint32_t size;
-		free(fWaveforms[b]);
-		errorCode = CAEN_DGTZ_MallocDPPWaveforms(fHandle[b], reinterpret_cast<void**>(&(fWaveforms[b])), &size);
-		if(errorCode != 0) {
-			CAEN_DGTZ_CloseDigitizer(fHandle[b]);
-			throw std::runtime_error(format("Error %d when allocating DPP waveforms", errorCode));
+		if(fBufferSize > fMaxBufferSize) {
+			if(fMaxBufferSize != 0) {
+				std::cout<<"found board "<<b<<" which needs "<<fBufferSize<<" bytes instead of "<<fMaxBufferSize<<std::endl;
+			}
+			fMaxBufferSize = fBufferSize;
 		}
-#endif
-		if(fDebug) std::cout<<"done with board "<<b<<std::endl;
+		if(fDebug) std::cout<<"allocated "<<fBufferSize<<" bytes of buffer for board "<<b<<std::endl;
+		std::cout<<"allocated "<<fBufferSize<<" bytes of buffer for board "<<b<<std::endl;
+		free(fBuffer);
+		if(fDebug) std::cout<<"done with allocating for board "<<b<<std::endl;
 	} // for(int b = 0; b < fSettings->NumberOfBoards(); ++b)
+	fBuffer = static_cast<char*>(malloc(fMaxBufferSize));
 	fSetupDone = true;
 	std::cout<<"Setup of VX1730 finished!"<<std::endl;
 }
@@ -124,12 +126,11 @@ void CaenDigitizer::Setup()
 CaenDigitizer::~CaenDigitizer()
 {
 	// only need to free or close anything if we did a setup already
-	for(int b = 0; b < fSettings->NumberOfBoards() && fSetupDone; ++b) {
-		CAEN_DGTZ_FreeReadoutBuffer(&fBuffer[b]);
-#ifdef USE_WAVEFORMS
-		CAEN_DGTZ_FreeDPPWaveforms(fHandle[b], reinterpret_cast<void*>(fWaveforms[b]));
-#endif
-		CAEN_DGTZ_CloseDigitizer(fHandle[b]);
+	if(fSetupDone) {
+		CAEN_DGTZ_FreeReadoutBuffer(&fBuffer);
+		for(int b = 0; b < fSettings->NumberOfBoards(); ++b) {
+			CAEN_DGTZ_CloseDigitizer(fHandle[b]);
+		}
 	}
 }
 
@@ -148,6 +149,13 @@ void CaenDigitizer::StartAcquisition(HNDLE hDB)
 		std::cout<<"gave up waiting for calibration to be done after "<<100<<" tries"<<std::endl;
 	} else {
 		std::cout<<"Calibration is done!"<<std::endl;
+	}
+	for(i = 0; i < 100 && !BoardsReady(); ++i) {
+	}
+	if(i == 100) {
+		std::cout<<"gave up waiting for boards to be ready after "<<100<<" tries"<<std::endl;
+	} else {
+		std::cout<<"Boards are ready!"<<std::endl;
 	}
 
 	if(fSettings->RawOutput()) {
@@ -223,6 +231,22 @@ bool CaenDigitizer::CalibrationDone()
 	return true;
 }
 
+bool CaenDigitizer::BoardsReady()
+{
+	uint32_t address = 0x8104; // acquisition status
+	uint32_t data;
+
+	// check board ready
+	for(int b = 0; b < fSettings->NumberOfBoards(); ++b) {
+		CAEN_DGTZ_ReadRegister(fHandle[b], address, &data);
+		if((data&0x100) == 0x0) {
+			// bit 8 is not set = board not ready
+			return false;
+		}
+	}
+	return true;
+}
+
 INT CaenDigitizer::DataReady()
 {
 	// if the setup hasn't been done we can't get any data
@@ -230,26 +254,18 @@ INT CaenDigitizer::DataReady()
 		return FALSE;
 	}
 
-	int errorCode = 0;
+	uint32_t address = 0x8104; // acquisition status
+	uint32_t data;
 
-	// read data
-	bool gotData = false;
+	// check data ready
 	for(int b = 0; b < fSettings->NumberOfBoards(); ++b) {
-		errorCode = CAEN_DGTZ_ReadData(fHandle[b], CAEN_DGTZ_SLAVE_TERMINATED_READOUT_MBLT, fBuffer[b], &fBufferSize[b]);
-		if(errorCode != 0) {
-			//std::cerr<<"Error "<<errorCode<<" when reading data from board "<<b<<std::endl;
-			return FALSE;
-		}
-		if(fBufferSize[b] > 0) {
-			if(fDebug) {
-				std::cout<<"Read "<<fBufferSize[b]<<" bytes from board "<<b<<std::endl;
-			}
-			gotData = true;
+		CAEN_DGTZ_ReadRegister(fHandle[b], address, &data);
+		if((data&0x8) == 0x8) {
+			// bit 3 is set = data ready
+			return TRUE;
 		}
 	}
 
-	// this is necessary because TRUE and FALSE are not booleans ...
-	if(gotData) return TRUE;
 	return FALSE;
 }
 
@@ -261,20 +277,7 @@ bool CaenDigitizer::ReadData(char* event, const char* bankName, const int& maxSi
 	//
 	// no checks for valid events done, nor any identification of board/channel???
 	DWORD* data;
-	//check if we have any data
-	int totalSize = 0;
-	for(int b = 0; b < fSettings->NumberOfBoards(); ++b) {
-		if(fBufferSize[b] >= 0) {
-			totalSize += fBufferSize[b];
-		} else {
-			std::cerr<<"buffer size of board "<<b<<" is negative: "<<fBufferSize[b]<<std::endl;
-			fBufferSize[b] = 0;
-		}
-	}
-	if(totalSize == 0) {
-		std::cout<<__PRETTY_FUNCTION__<<": no data"<<std::endl;
-		return false; // had no data, so there is none left either
-	}
+	int errorCode = 0;
 	//create bank - returns pointer to data area of bank
 	bk_create(event, bankName, TID_DWORD, reinterpret_cast<void**>(&data));
 	//check if we can copy all events from fBuffer to data
@@ -282,36 +285,56 @@ bool CaenDigitizer::ReadData(char* event, const char* bankName, const int& maxSi
 	eventsRead = 0;
 	if(fDebug) std::cout<<"#events read: ";
 	int b;
+	//check if we have any data
+	int totalSize = 0;
 	for(b = 0; b < fSettings->NumberOfBoards(); ++b) {
-		if(fBufferSize[b] == 0) continue;
-		if(fBufferSize[b] > static_cast<size_t>(maxSize)) {
-			std::cout<<"Can't fit board buffer of "<<fBufferSize[b]<<" bytes into maximum size of "<<maxSize<<" bytes, discarding this buffer!"<<std::endl;
-			fBufferSize[b] = 0; // prevent us from trying/warning about this again
+		errorCode = CAEN_DGTZ_ReadData(fHandle[b], CAEN_DGTZ_SLAVE_TERMINATED_READOUT_MBLT, fBuffer, &fBufferSize);
+		if(errorCode != 0) {
+			//std::cerr<<"Error "<<errorCode<<" when reading data from board "<<b<<std::endl;
+			return FALSE;
+		}
+		if(fBufferSize >= 0) {
+			if(fDebug && fBufferSize > 0) {
+				std::cout<<"Read "<<fBufferSize<<" bytes from board "<<b<<std::endl;
+			}
+			totalSize += fBufferSize;
+		} else {
+			std::cerr<<"buffer size of board "<<b<<" is negative: "<<fBufferSize<<std::endl;
+			fBufferSize = 0;
+		}
+		if(fBufferSize == 0) continue;
+		if(fBufferSize > static_cast<size_t>(maxSize)) {
+			std::cout<<"Can't fit board buffer of "<<fBufferSize<<" bytes into maximum size of "<<maxSize<<" bytes, discarding this buffer!"<<std::endl;
+			fBufferSize = 0; // prevent us from trying/warning about this again
 			continue;
 		}
-		if(fBufferSize[b] + sizeRead > static_cast<size_t>(maxSize)) {
+		if(fBufferSize + sizeRead > static_cast<size_t>(maxSize)) {
 			break;
 		}
-		// at this stage we know that this boards buffer will fit in the rest of the event buffer
 		//copy buffer of this board
-		std::memcpy(data, fBuffer[b], fBufferSize[b]);
-		data += fBufferSize[b]/sizeof(DWORD);
+		// at this stage we know that this boards buffer will fit in the rest of the event buffer
+		std::memcpy(data, fBuffer, fBufferSize);
+		data += fBufferSize/sizeof(DWORD);
 		if(fRawOutput.is_open()) {
-			fRawOutput.write(fBuffer[b], fBufferSize[b]);
+			fRawOutput.write(fBuffer, fBufferSize);
 		}
 
-		eventsRead += GetNumberOfEvents(fBuffer[b], fBufferSize[b]);
-		if(fDebug) std::cout<<"board "<<b<<": total number of events read is "<<eventsRead<<" from buffer size "<<fBufferSize[b]<<std::endl;
+		eventsRead += GetNumberOfEvents(fBuffer, fBufferSize);
+		if(fDebug) std::cout<<"board "<<b<<": total number of events read is "<<eventsRead<<" from buffer size "<<fBufferSize<<std::endl;
 
 		// we're done reading this boards buffer, so we set it's size to zero
 		// to prevent copying it again if this function fails to write all board
 		// buffers into a single midas event
-		fBufferSize[b] = 0;
+		fBufferSize = 0;
 	}
-	if(fDebug) std::cout<<"total: "<<std::setw(8)<<eventsRead<<std::endl;
-
 	//close bank
 	bk_close(event, data);
+
+	if(totalSize == 0) {
+		std::cout<<__PRETTY_FUNCTION__<<": no data"<<std::endl;
+		return false; // had no data, so there is none left either
+	}
+	if(fDebug) std::cout<<"total: "<<std::setw(8)<<eventsRead<<std::endl;
 
 	// we only have events left in the buffers if the above loop
 	// was broken out of

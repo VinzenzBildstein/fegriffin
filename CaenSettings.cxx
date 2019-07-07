@@ -55,6 +55,7 @@ ChannelSettings::ChannelSettings(const V1730_TEMPLATE& templateSettings)
 	fCfdParameters |= (templateSettings.cfd_fraction & 0x3) << 8;
 	fCfdParameters |= (templateSettings.cfd_interpolation_points & 0x3) << 10;
 	fEnableCoinc    = templateSettings.enable_coinc;
+	//fEnableCoincTrig= templateSettings.enable_coinc;
 	fEnableBaseline = templateSettings.enable_baseline;
 	fCoincWindow    = templateSettings.coinc_window;
 	fCoincLatency   = templateSettings.coinc_latency;
@@ -232,7 +233,7 @@ bool operator==(const ChannelSettings& lh, const ChannelSettings& rh)
 			  lh.fEnableCfd       == rh.fEnableCfd &&
 			  lh.fCfdParameters   == rh.fCfdParameters &&
 			  lh.fEnableCoinc     == rh.fEnableCoinc &&
-			  lh.fEnableCoincTrig == rh.fEnableCoincTrig &&
+			  //lh.fEnableCoincTrig == rh.fEnableCoincTrig &&
 			  lh.fEnableBaseline  == rh.fEnableBaseline &&
 			  lh.fCoincWindow     == rh.fCoincWindow &&
 			  lh.fCoincLatency    == rh.fCoincLatency);
@@ -813,6 +814,14 @@ bool operator!=(const BoardSettings& lh, const BoardSettings& rh)
 
 CaenSettings::CaenSettings(bool debug)
 {
+	fNumberOfBoards = 0;
+ 	fNumberOfChannels = 0;
+	fUseExternalClock = false;
+
+	fBufferSize = 0;
+
+	fRawOutput = false;
+
 	fDebug = debug;
 }
 
