@@ -29,9 +29,9 @@ endif
 
 MODULES = $(LIB_DIR)/mfe.o grifc.o odb_io.o
 
-all: fegriffin 
+all: fedescant 
 
-fegriffin: $(MIDASLIBS) fegriffin.o $(MODULES) CaenSettings.o CaenDigitizer.o
+fedescant: $(MIDASLIBS) fedescant.o $(MODULES) CaenSettings.o CaenDigitizer.o
 	$(CXX) -o $@ $(CXXFLAGS) $(OSFLAGS) $^ $(MIDASLIBS) $(ROOTLIBS) $(LIBS)
 
 %: %.cc $(MIDASLIBS) CaenSettings.o
@@ -44,6 +44,6 @@ fegriffin: $(MIDASLIBS) fegriffin.o $(MODULES) CaenSettings.o CaenDigitizer.o
 	$(CXX) $(CXXFLAGS) $(OSFLAGS) -c $<
 
 clean::
-	-rm -f *.o *.exe fegriffin
+	-rm -f *.o *.exe fedescant
 
 # end

@@ -85,7 +85,7 @@ void CaenDigitizer::Setup()
 				throw std::runtime_error("This digitizer has no DPP-PSD firmware");
 			}
 		} else {// if(fHandle[b] == -1)
-			std::cout<<"Re-using handle for port "<<fPort[b]<<"/"<<fSettings->PortNumber(b)<<", devkce "<<fDevice[b]<<"/"<<fSettings->DeviceNumber(b)<<std::endl;
+			std::cout<<"Re-using handle for port "<<fPort[b]<<"/"<<fSettings->PortNumber(b)<<", device "<<fDevice[b]<<"/"<<fSettings->DeviceNumber(b)<<std::endl;
 		}
 	}
 
