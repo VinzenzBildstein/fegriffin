@@ -106,7 +106,7 @@ int begin_of_run(int run_number, char *error)
 
 int end_of_run(int run_number, char *error)
 {
-   printf("stopping VX1730 digitizer ...\n");
+   printf("\nstopping VX1730 digitizer ...\n");
    if(gDigitizer!= nullptr) gDigitizer->StopAcquisition();
    printf("done, read %d CAEN VX1730 events!\n", nofCaenEvents);
 
@@ -157,12 +157,14 @@ int read_caen_event(char *pevent, int off)
 	}
 
 	// print current rate
-	time_t now = time(NULL);
+	struct timespec now;
+	clock_gettime(CLOCK_REALTIME, &now);
 	static int iteration = 0;
-	static time_t lastUpdate = -1;
+	static struct timespec lastUpdate = {0};
 	static uint32_t lastNofCaenEvents = 0;
-	if(now != lastUpdate && lastUpdate != -1) {
-		printf("now %9d events, %.1f s ago %9d events => %d/s\r", nofCaenEvents, difftime(now, lastUpdate), lastNofCaenEvents, (int)((nofCaenEvents - lastNofCaenEvents)/difftime(now, lastUpdate)));
+	if(now.tv_sec != lastUpdate.tv_sec) {
+		double timeDiff = (now.tv_sec + now.tv_nsec/1e9) - (lastUpdate.tv_sec + lastUpdate.tv_nsec/1e9);
+		printf("now %12d events, %.1f s ago %12d events => %9d/s\r", nofCaenEvents, timeDiff, lastNofCaenEvents, (int)((nofCaenEvents - lastNofCaenEvents)/timeDiff));
 		if(iteration%60 == 0) printf("\n");
 		lastUpdate = now;
 		lastNofCaenEvents = nofCaenEvents;
