@@ -27,7 +27,7 @@ ifneq ($(ROOTSYS),)
 	ROOTLIBS = $(shell root-config --libs)
 endif
 
-MODULES = $(LIB_DIR)/mfe.o grifc.o odb_io.o
+MODULES = $(LIB_DIR)/mfe.o
 
 all: fedescant 
 
