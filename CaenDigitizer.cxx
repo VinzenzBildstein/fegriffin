@@ -48,6 +48,8 @@ void CaenDigitizer::Setup()
 			fBuffer.resize(fSettings->NumberOfBoards(), NULL);
 			fBufferSize.resize(fSettings->NumberOfBoards(), 0);
 			fWaveforms.resize(fSettings->NumberOfBoards(), NULL);
+			fNofEvents.resize(fSettings->NumberOfBoards(), NULL);
+			fLastNofEvents.resize(fSettings->NumberOfBoards(), NULL);
 		} catch(std::exception e) {
 			std::cerr<<"Failed to resize vectors for "<<fSettings->NumberOfBoards()<<" boards, and "<<fSettings->NumberOfChannels()<<" channels: "<<e.what()<<std::endl;
 			throw e;
@@ -140,6 +142,15 @@ void CaenDigitizer::StartAcquisition(HNDLE hDB)
 	Setup();
 	Calibrate();
 
+	// reset status variables
+	fIteration = 0;
+	for(size_t i = 0; i < fNofEvents.size(); ++i) {
+		fNofEvents[i] = 0;
+		fLastNofEvents[i] = 0;
+	}
+	clock_gettime(CLOCK_REALTIME, &fLastUpdate);
+	fLastTotalNofEvents = 0;
+
 	int i;
 	for(i = 0; i < 100 && !CalibrationDone(); ++i) {
 		CalibrationStatus();
@@ -169,6 +180,13 @@ void CaenDigitizer::StopAcquisition()
 	if(fRawOutput.is_open()) {
 		fRawOutput.close();
 	}
+	uint32_t totalNofEvents = 0;
+	std::cout<<std::endl;
+	for(size_t i = 0; i < fNofEvents.size(); ++i) {
+		std::cout<<"board "<<i<<": "<<std::setw(12)<<fNofEvents[i]<<" events  | ";
+		totalNofEvents += fNofEvents[i];
+	}
+	std::cout<<"total: "<<std::setw(12)<<totalNofEvents<<" events    "<<std::endl;
 }
 
 void CaenDigitizer::Calibrate()
@@ -280,7 +298,6 @@ bool CaenDigitizer::ReadData(char* event, const char* bankName, const int& maxSi
 	//check if we can copy all events from fBuffer to data
 	int sizeRead = 0;
 	eventsRead = 0;
-	if(fDebug) std::cout<<"#events read: ";
 	int b;
 	for(b = 0; b < fSettings->NumberOfBoards(); ++b) {
 		if(fBufferSize[b] == 0) continue;
@@ -300,15 +317,15 @@ bool CaenDigitizer::ReadData(char* event, const char* bankName, const int& maxSi
 			fRawOutput.write(fBuffer[b], fBufferSize[b]);
 		}
 
-		eventsRead += GetNumberOfEvents(fBuffer[b], fBufferSize[b]);
-		if(fDebug) std::cout<<"board "<<b<<": total number of events read is "<<eventsRead<<" from buffer size "<<fBufferSize[b]<<std::endl;
+		uint32_t nofEvents = GetNumberOfEvents(fBuffer[b], fBufferSize[b]);
+		fNofEvents[b] += nofEvents;
+		eventsRead += nofEvents;
 
 		// we're done reading this boards buffer, so we set it's size to zero
 		// to prevent copying it again if this function fails to write all board
 		// buffers into a single midas event
 		fBufferSize[b] = 0;
 	}
-	if(fDebug) std::cout<<"total: "<<std::setw(8)<<eventsRead<<std::endl;
 
 	//close bank
 	bk_close(event, data);
@@ -555,5 +572,28 @@ void CaenDigitizer::PrintEventsPerAggregate()
 			std::cout<<ch<<" - "<<(data&0x3ff)<<"; ";
 		}
 		std::cout<<std::endl;
+	}
+}
+
+void CaenDigitizer::Status()
+{
+	// print current rate
+	struct timespec now;
+	clock_gettime(CLOCK_REALTIME, &now);
+	// only print about once every second
+	if(now.tv_sec != fLastUpdate.tv_sec && fLastUpdate.tv_sec != 0) {
+		double timeDiff = (now.tv_sec + now.tv_nsec/1e9) - (fLastUpdate.tv_sec + fLastUpdate.tv_nsec/1e9);
+		uint32_t totalNofEvents = 0;
+		for(size_t i = 0; i < fNofEvents.size(); ++i) {
+			std::cout<<"board "<<i<<": "<<std::setw(9)<<static_cast<int>((fNofEvents[i] - fLastNofEvents[i])/timeDiff)<<"/s | ";
+			totalNofEvents += fNofEvents[i];
+		}
+		std::cout<<"total: "<<std::setw(9)<<static_cast<int>((totalNofEvents - fLastTotalNofEvents)/timeDiff)<<"/s   ";
+		std::cout<<"\r"<<std::flush;
+		if(fIteration%300 == 0) std::cout<<std::endl; // preserve last output rougly every 5 minutes
+		fLastUpdate = now;
+		fLastNofEvents = fNofEvents;
+		fLastTotalNofEvents = totalNofEvents;
+		++fIteration;
 	}
 }

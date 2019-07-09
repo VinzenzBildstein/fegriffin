@@ -89,12 +89,13 @@ int frontend_init()
 	gDigitizer->PrintEventsPerAggregate();
 	gDigitizer->PrintAggregatesPerBlt();
 
-   printf("done\n");
+   printf("init done\n");
    return SUCCESS;
 }
 
 int begin_of_run(int run_number, char *error)
 {
+	nofCaenEvents = 0;
    if(gDigitizer != nullptr) gDigitizer->StartAcquisition(hDB);
 
 	gDigitizer->PrintEventsPerAggregate();
@@ -156,20 +157,7 @@ int read_caen_event(char *pevent, int off)
 		nofCaenEvents += nofEvents;
 	}
 
-	// print current rate
-	struct timespec now;
-	clock_gettime(CLOCK_REALTIME, &now);
-	static int iteration = 0;
-	static struct timespec lastUpdate = {0};
-	static uint32_t lastNofCaenEvents = 0;
-	if(now.tv_sec != lastUpdate.tv_sec) {
-		double timeDiff = (now.tv_sec + now.tv_nsec/1e9) - (lastUpdate.tv_sec + lastUpdate.tv_nsec/1e9);
-		printf("now %12d events, %.1f s ago %12d events => %9d/s\r", nofCaenEvents, timeDiff, lastNofCaenEvents, (int)((nofCaenEvents - lastNofCaenEvents)/timeDiff));
-		if(iteration%60 == 0) printf("\n");
-		lastUpdate = now;
-		lastNofCaenEvents = nofCaenEvents;
-		++iteration;
-	}
+	gDigitizer->Status();
 
    return bk_size(pevent);
 }

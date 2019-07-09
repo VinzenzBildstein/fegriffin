@@ -4,6 +4,7 @@
 #include <string>
 #include <functional>
 #include <fstream>
+#include <time.h>
 
 #include "midas.h"
 
@@ -20,6 +21,7 @@ public:
 	bool ReadData(char* event, const char* bankName, const int& maxSize, uint32_t& eventsRead);
 	void PrintAggregatesPerBlt();
 	void PrintEventsPerAggregate();
+	void Status();
 
 private:
 	void Setup();
@@ -44,6 +46,13 @@ private:
 	std::vector<CAEN_DGTZ_DPP_PSD_Waveforms_t*> fWaveforms;
 
 	std::ofstream fRawOutput;
+
+	// variables for status output
+	std::vector<uint32_t> fNofEvents;
+	std::vector<uint32_t> fLastNofEvents;
+	uint32_t fLastTotalNofEvents;
+	int fIteration;
+	struct timespec fLastUpdate;
 
 	bool fDebug;
 	bool fSetupDone;
