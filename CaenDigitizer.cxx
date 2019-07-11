@@ -416,10 +416,13 @@ void CaenDigitizer::ProgramDigitizer(int b)
 	if(fDebug) std::cout<<"programming digitizer "<<b<<std::endl;
 	CAEN_DGTZ_ErrorCode errorCode;
 
+   // not sure if this is needed?
 	errorCode = CAEN_DGTZ_Reset(fHandle[b]);
 
 	if(errorCode != 0) {
-		throw std::runtime_error(format("Error %d when resetting digitizer", errorCode));
+	//	throw std::runtime_error(format("Error %d when resetting digitizer", errorCode));
+		cm_msg(MINFO, "ProgramDigitizer", "Error %d when resetting digitizer %d", errorCode, b);
+		errorCode = CAEN_DGTZ_ErrorCode(0);
 	}
 
 	errorCode = CAEN_DGTZ_SetDPPAcquisitionMode(fHandle[b], fSettings->AcquisitionMode(b), CAEN_DGTZ_DPP_SAVE_PARAM_EnergyAndTime);
@@ -428,7 +431,9 @@ void CaenDigitizer::ProgramDigitizer(int b)
 	//std::cout<<"acquisition mode "<<CAEN_DGTZ_GetDPPAcquisitionMode(fHandle[b], &mode, &param)<<": mode "<<mode<<", param "<<param<<std::endl;
 
 	if(errorCode != 0) {
-		throw std::runtime_error(format("Error %d when setting DPP acquisition mode", errorCode));
+		//throw std::runtime_error(format("Error %d when setting DPP acquisition mode", errorCode));
+		cm_msg(MINFO, "ProgramDigitizer", "Error %d when setting DPP acquisition mode for digitizer %d", errorCode, b);
+		errorCode = CAEN_DGTZ_ErrorCode(0);
 	}
 
 	// CAEN_DGTZ_SetAcquisitionMode gets overwritten later by CAEN_DGTZ_SetRunSynchronizationMode, so we don't bother with it
@@ -436,19 +441,25 @@ void CaenDigitizer::ProgramDigitizer(int b)
 	errorCode = CAEN_DGTZ_SetIOLevel(fHandle[b], fSettings->IOLevel(b));
 
 	if(errorCode != 0) {
-		throw std::runtime_error(format("Error %d when setting IO level", errorCode));
+		//throw std::runtime_error(format("Error %d when setting IO level", errorCode));
+		cm_msg(MINFO, "ProgramDigitizer", "Error %d when setting IO level for digitizer %d", errorCode, b);
+		errorCode = CAEN_DGTZ_ErrorCode(0);
 	}
 
 	errorCode = CAEN_DGTZ_SetExtTriggerInputMode(fHandle[b], fSettings->TriggerMode(b));
 
 	if(errorCode != 0) {
-		throw std::runtime_error(format("Error %d when setting external trigger DPP events", errorCode));
+		//throw std::runtime_error(format("Error %d when setting external trigger DPP events", errorCode));
+		cm_msg(MINFO, "ProgramDigitizer", "Error %d when setting external trigger DPP events for digitizer %d", errorCode, b);
+		errorCode = CAEN_DGTZ_ErrorCode(0);
 	}
 
 	errorCode = CAEN_DGTZ_SetChannelEnableMask(fHandle[b], fSettings->ChannelMask(b));
 
 	if(errorCode != 0) {
-		throw std::runtime_error(format("Error %d when setting channel mask", errorCode));
+		//throw std::runtime_error(format("Error %d when setting channel mask", errorCode));
+		cm_msg(MINFO, "ProgramDigitizer", "Error %d when setting channel mask for digitizer %d", errorCode, b);
+		errorCode = CAEN_DGTZ_ErrorCode(0);
 	}
 
 	// disabled turns acquisition mode back to SW controlled
@@ -457,13 +468,17 @@ void CaenDigitizer::ProgramDigitizer(int b)
 	errorCode = CAEN_DGTZ_SetRunSynchronizationMode(fHandle[b], CAEN_DGTZ_RUN_SYNC_SinFanout); // change to settings (was CAEN_DGTZ_RUN_SYNC_Disabled)
 
 	if(errorCode != 0) {
-		throw std::runtime_error(format("Error %d when setting run sychronization", errorCode));
+		//throw std::runtime_error(format("Error %d when setting run synchronization", errorCode));
+		cm_msg(MINFO, "ProgramDigitizer", "Error %d when setting run synchronization for digitizer %d", errorCode, b);
+		errorCode = CAEN_DGTZ_ErrorCode(0);
 	}
 
 	errorCode = CAEN_DGTZ_SetDPPParameters(fHandle[b], fSettings->ChannelMask(b), const_cast<void*>(static_cast<const void*>(fSettings->ChannelParameter(b))));
 
 	if(errorCode != 0) {
-		throw std::runtime_error(format("Error %d when setting dpp parameters", errorCode));
+		//throw std::runtime_error(format("Error %d when setting dpp parameters", errorCode));
+		cm_msg(MINFO, "ProgramDigitizer", "Error %d when setting dpp parameters for digitizer %d", errorCode, b);
+		errorCode = CAEN_DGTZ_ErrorCode(0);
 	}
 
 	// write some special registers directly
