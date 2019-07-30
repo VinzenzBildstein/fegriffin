@@ -449,7 +449,7 @@ void CaenDigitizer::ProgramDigitizer(int b)
 	// disabled turns acquisition mode back to SW controlled
 	// both GpioGpioDaisyChain and SinFanout turn it to S_IN controlled
 	// according to rev18 manual GpioGpioDaisyChain is not used!
-	errorCode = CAEN_DGTZ_SetRunSynchronizationMode(fHandle[b], CAEN_DGTZ_RUN_SYNC_SinFanout); // change to settings (was CAEN_DGTZ_RUN_SYNC_Disabled)
+	errorCode = CAEN_DGTZ_SetRunSynchronizationMode(fHandle[b], fSettings->RunSync(b)); // change to settings (was CAEN_DGTZ_RUN_SYNC_Disabled)
 
 	if(errorCode != 0) {
 		throw std::runtime_error(format("Error %d when setting run sychronization", errorCode));
