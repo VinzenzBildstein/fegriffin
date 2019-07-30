@@ -45,10 +45,6 @@ int pause_run(int run, char *err);    int resume_run(int run, char *err);
 int frontend_loop(){ return SUCCESS; }
 int read_caen_event(char *pevent, INT off);
 
-BANK_LIST trigger_bank_list[] = { /* online banks */
-   {"GRF4", TID_DWORD, 16, NULL},
-   {""},
-};
 EQUIPMENT equipment[] = {
    {"VX1730",                                             /* equipment name */
       {3, 0, "SYSTEM",                      /* event ID, trigger mask, Evbuf */
@@ -56,7 +52,6 @@ EQUIPMENT equipment[] = {
        TRUE, RO_RUNNING,                              /* enabled?, WhenRead? */
        50, 0, 0, 0,                 /* poll[ms], Evt Lim, SubEvtLim, LogHist */
        "", "", "",}, read_caen_event,                  /* readout routine */
-    /*NULL, NULL, trigger_bank_list*/                           /* bank list */
    },
 
    {""}
@@ -109,7 +104,7 @@ int end_of_run(int run_number, char *error)
 {
    printf("\nstopping VX1730 digitizer ...\n");
    if(gDigitizer!= nullptr) gDigitizer->StopAcquisition();
-   printf("done, read %d CAEN VX1730 events!\n", nofCaenEvents);
+   printf("done, read %u CAEN VX1730 events!\n", nofCaenEvents);
 
    return SUCCESS;
 }
