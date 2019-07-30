@@ -145,7 +145,7 @@ int read_caen_event(char *pevent, int off)
    bk_init(pevent);
 
 	uint32_t nofEvents = 0;
-   if(gDigitizer != nullptr) caen_data_available = gDigitizer->ReadData(pevent, "CAEN", max_event_size, nofEvents);
+   if(gDigitizer != nullptr) caen_data_available = gDigitizer->ReadData(pevent, max_event_size, nofEvents);
 
 	if(nofEvents > 1) {
 		SERIAL_NUMBER(pevent) += nofEvents - 1;

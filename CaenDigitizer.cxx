@@ -38,7 +38,6 @@ void CaenDigitizer::Setup()
 	if(fDebug) std::cout<<"setting up digitizer"<<std::endl;
 	CAEN_DGTZ_ErrorCode errorCode;
 	CAEN_DGTZ_BoardInfo_t boardInfo;
-	int majorNumber;
 
 	if(static_cast<int>(fHandle.size()) < fSettings->NumberOfBoards()) {
 		// we have more boards now than before, so we need to initialize the additional boards
@@ -46,11 +45,13 @@ void CaenDigitizer::Setup()
 			fHandle.resize(fSettings->NumberOfBoards(), -1);
 			fPort.resize(fSettings->NumberOfBoards(), -1);
 			fDevice.resize(fSettings->NumberOfBoards(), -1);
+			fFirmwareVersion.resize(fSettings->NumberOfBoards(), -1);
+			fFirmwareType.resize(fSettings->NumberOfBoards(), EFirmware::kPSD);
 			fBuffer.resize(fSettings->NumberOfBoards(), NULL);
 			fBufferSize.resize(fSettings->NumberOfBoards(), 0);
 			fWaveforms.resize(fSettings->NumberOfBoards(), NULL);
-			fNofEvents.resize(fSettings->NumberOfBoards(), NULL);
-			fLastNofEvents.resize(fSettings->NumberOfBoards(), NULL);
+			fNofEvents.resize(fSettings->NumberOfBoards(), 0);
+			fLastNofEvents.resize(fSettings->NumberOfBoards(), 0);
 			fReadError.resize(fSettings->NumberOfBoards(), 0);
 		} catch(std::exception e) {
 			std::cerr<<"Failed to resize vectors for "<<fSettings->NumberOfBoards()<<" boards, and "<<fSettings->NumberOfChannels()<<" channels: "<<e.what()<<std::endl;
@@ -74,19 +75,17 @@ void CaenDigitizer::Setup()
 				CAEN_DGTZ_CloseDigitizer(fHandle[b]);
 				throw std::runtime_error(format("Error %d when reading digitizer info", errorCode));
 			}
-#ifdef USE_CURSES
-			printw("\nConnected to CAEN Digitizer Model %s serial number %d as %d. board\n", boardInfo.ModelName, boardInfo.SerialNumber, b);
-			printw("\nFirmware is ROC %s, AMC %s\n", boardInfo.ROC_FirmwareRel, boardInfo.AMC_FirmwareRel);
-#else
 			std::cout<<std::endl<<"Connected to CAEN Digitizer Model "<<boardInfo.ModelName<<" serial number "<<boardInfo.SerialNumber<<" as "<<b<<". board, using port "<<fPort[b]<<", device "<<fDevice[b]<<std::endl;
 			std::cout<<std::endl<<"Firmware is ROC "<<boardInfo.ROC_FirmwareRel<<", AMC "<<boardInfo.AMC_FirmwareRel<<std::endl;
-#endif
 
 			std::stringstream str(boardInfo.AMC_FirmwareRel);
-			str>>majorNumber;
-			if(majorNumber != 131 && majorNumber != 132 && majorNumber != 136) {
-				CAEN_DGTZ_CloseDigitizer(fHandle[b]);
-				throw std::runtime_error("This digitizer has no DPP-PSD firmware");
+			str>>fFirmwareVersion[b];
+			if(fFirmwareVersion[b] == 131 || fFirmwareVersion[b] == 132 || fFirmwareVersion[b] == 136) {
+				std::cout<<"Digitizer "<<b<<" has DPP-PSD firmware"<<std::endl;
+				fFirmwareType[b] = EFirmware::kPSD;
+			} else {
+				std::cout<<"Digitizer "<<b<<" has DPP-PHA firmware"<<std::endl;
+				fFirmwareType[b] = EFirmware::kPHA;
 			}
 		} else {// if(fHandle[b] == -1)
 			std::cout<<"Re-using handle for port "<<fPort[b]<<"/"<<fSettings->PortNumber(b)<<", device "<<fDevice[b]<<"/"<<fSettings->DeviceNumber(b)<<std::endl;
@@ -95,7 +94,11 @@ void CaenDigitizer::Setup()
 
 	// we always re-program the digitizer in case settings have been changed
 	for(int b = 0; b < fSettings->NumberOfBoards(); ++b) {
-		ProgramDigitizer(b);
+		if(fFirmwareType[b] == EFirmware::kPSD) {
+			ProgramPsdDigitizer(b);
+		} else if(fFirmwareType[b] == EFirmware::kPHA) {
+			ProgramPhaDigitizer(b);
+		}
 
 		// we don't really need to know how many bytes have been allocated, so we use fBufferSize here
 		free(fBuffer[b]);
@@ -279,7 +282,7 @@ INT CaenDigitizer::DataReady()
 	return FALSE;
 }
 
-bool CaenDigitizer::ReadData(char* event, const char* bankName, const int& maxSize, uint32_t& eventsRead)
+bool CaenDigitizer::ReadData(char* event, const int& maxSize, uint32_t& eventsRead)
 {
 	// creates bank at <event> and copies up to maxSize worth of data from fBuffer to it
 	// sets the number of events read from the buffer via eventsRead and returns if there are any
@@ -301,8 +304,7 @@ bool CaenDigitizer::ReadData(char* event, const char* bankName, const int& maxSi
 		std::cout<<__PRETTY_FUNCTION__<<": no data"<<std::endl;
 		return false; // had no data, so there is none left either
 	}
-	//create bank - returns pointer to data area of bank
-	bk_create(event, bankName, TID_DWORD, reinterpret_cast<void**>(&data));
+	const char* bankName;
 	//check if we can copy all events from fBuffer to data
 	int sizeRead = 0;
 	eventsRead = 0;
@@ -317,6 +319,13 @@ bool CaenDigitizer::ReadData(char* event, const char* bankName, const int& maxSi
 		if(fBufferSize[b] + sizeRead > static_cast<size_t>(maxSize)) {
 			break;
 		}
+		//create bank - returns pointer to data area of bank
+		if(fFirmwareType[b] == EFirmware::kPSD) {
+			bankName = "CAEN";
+		} else if(fFirmwareType[b] == EFirmware::kPHA) {
+			bankName = "CPHA";
+		}
+		bk_create(event, bankName, TID_DWORD, reinterpret_cast<void**>(&data));
 		// at this stage we know that this boards buffer will fit in the rest of the event buffer
 		//copy buffer of this board
 		std::memcpy(data, fBuffer[b], fBufferSize[b]);
@@ -333,10 +342,10 @@ bool CaenDigitizer::ReadData(char* event, const char* bankName, const int& maxSi
 		// to prevent copying it again if this function fails to write all board
 		// buffers into a single midas event
 		fBufferSize[b] = 0;
+		
+		//close bank
+		bk_close(event, data);
 	}
-
-	//close bank
-	bk_close(event, data);
 
 	// we only have events left in the buffers if the above loop
 	// was broken out of
@@ -416,7 +425,7 @@ uint32_t CaenDigitizer::GetNumberOfEvents(char* buffer, uint32_t bufferSize)
 	return numEvents;
 }
 
-void CaenDigitizer::ProgramDigitizer(int b)
+void CaenDigitizer::ProgramPsdDigitizer(int b)
 {
 	uint32_t address;
 	uint32_t data;
@@ -473,7 +482,7 @@ void CaenDigitizer::ProgramDigitizer(int b)
 	// disabled turns acquisition mode back to SW controlled
 	// both GpioGpioDaisyChain and SinFanout turn it to S_IN controlled
 	// according to rev18 manual GpioGpioDaisyChain is not used!
-	errorCode = CAEN_DGTZ_SetRunSynchronizationMode(fHandle[b], CAEN_DGTZ_RUN_SYNC_SinFanout); // change to settings (was CAEN_DGTZ_RUN_SYNC_Disabled)
+	errorCode = CAEN_DGTZ_SetRunSynchronizationMode(fHandle[b], fSettings->RunSync(b)); // change to settings (was CAEN_DGTZ_RUN_SYNC_Disabled)
 
 	if(errorCode != 0) {
 		//throw std::runtime_error(format("Error %d when setting run synchronization", errorCode));
@@ -596,6 +605,23 @@ void CaenDigitizer::ProgramDigitizer(int b)
 			data |= 0x40; // no mask necessary, we just set one bit
 			CAEN_DGTZ_WriteRegister(fHandle[b], address, data);
 		}
+	}
+
+	if(fDebug) std::cout<<"done with digitizer "<<b<<std::endl;
+}
+
+void CaenDigitizer::ProgramPhaDigitizer(int b)
+{
+	uint32_t address;
+	uint32_t data;
+
+	if(fDebug) std::cout<<"programming pha digitizer "<<b<<std::endl;
+	CAEN_DGTZ_ErrorCode errorCode;
+
+	errorCode = CAEN_DGTZ_Reset(fHandle[b]);
+
+	if(errorCode != 0) {
+		throw std::runtime_error(format("Error %d when resetting digitizer", errorCode));
 	}
 
 	if(fDebug) std::cout<<"done with digitizer "<<b<<std::endl;
