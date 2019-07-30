@@ -37,6 +37,12 @@ fedescant: $(MIDASLIBS) fedescant.o $(MODULES) CaenSettings.o CaenDigitizer.o
 %: %.cc $(MIDASLIBS) CaenSettings.o
 	$(CXX) -o $@ $(CXXFLAGS) $(OSFLAGS) $^ $(MIDASLIBS) $(ROOTLIBS) $(LIBS)
 
+%.o: %.c %.h
+	$(CC) $(CFLAGS) $(OSFLAGS) -c $<
+
+%.o: %.cxx %.hh
+	$(CXX) $(CXXFLAGS) $(OSFLAGS) -c $<
+
 %.o: %.c
 	$(CC) $(CFLAGS) $(OSFLAGS) -c $<
 
