@@ -55,6 +55,9 @@ typedef struct {
   BOOL      enable_baseline;
   WORD		coinc_window;
   WORD		coinc_latency;
+  BOOL		input_range;
+  BOOL		enable_zs;
+  WORD		charge_threshold;
 
   // for channel parameters structure
   WORD      pile_up_rejection_mode;
@@ -101,6 +104,9 @@ typedef struct {
 	"Enable Baseline = BOOL : 0",\
 	"Coincidence window = WORD : 2",\
 	"Coincidence latency = WORD : 0",\
+	"Input range = BOOL : 0",\
+	"Enable zero suppression = BOOL : 0",\
+	"Charge threshold = WORD : 0",\
 	"Pile up rejection mode = WORD : 0",\
 	"Pile up gap = WORD : 100",\
 	"Baseline threshold = WORD : 3",\
