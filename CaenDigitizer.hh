@@ -48,6 +48,7 @@ private:
 	std::ofstream fRawOutput;
 
 	// variables for status output
+	std::vector<uint32_t> fReadError;
 	std::vector<uint32_t> fNofEvents;
 	std::vector<uint32_t> fLastNofEvents;
 	uint32_t fLastTotalNofEvents;

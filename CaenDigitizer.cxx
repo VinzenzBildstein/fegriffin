@@ -10,6 +10,7 @@
 #include <cstdarg>
 #include <cstring>
 #include <cstdlib>
+#include <time.h>
 
 std::string format(const std::string& format, ...)
 {
@@ -50,6 +51,7 @@ void CaenDigitizer::Setup()
 			fWaveforms.resize(fSettings->NumberOfBoards(), NULL);
 			fNofEvents.resize(fSettings->NumberOfBoards(), NULL);
 			fLastNofEvents.resize(fSettings->NumberOfBoards(), NULL);
+			fReadError.resize(fSettings->NumberOfBoards(), 0);
 		} catch(std::exception e) {
 			std::cerr<<"Failed to resize vectors for "<<fSettings->NumberOfBoards()<<" boards, and "<<fSettings->NumberOfChannels()<<" channels: "<<e.what()<<std::endl;
 			throw e;
@@ -147,6 +149,7 @@ void CaenDigitizer::StartAcquisition(HNDLE hDB)
 	for(size_t i = 0; i < fNofEvents.size(); ++i) {
 		fNofEvents[i] = 0;
 		fLastNofEvents[i] = 0;
+		fReadError[i] = 0;
 	}
 	clock_gettime(CLOCK_REALTIME, &fLastUpdate);
 	fLastTotalNofEvents = 0;
@@ -255,7 +258,12 @@ INT CaenDigitizer::DataReady()
 	for(int b = 0; b < fSettings->NumberOfBoards(); ++b) {
 		errorCode = CAEN_DGTZ_ReadData(fHandle[b], CAEN_DGTZ_SLAVE_TERMINATED_READOUT_MBLT, fBuffer[b], &fBufferSize[b]);
 		if(errorCode != 0) {
-			//std::cerr<<"Error "<<errorCode<<" when reading data from board "<<b<<std::endl;
+			++fReadError[b];
+			if(fReadError[b]%100 == 0) {
+				cm_msg(MERROR, "DataReady", "Error %d when reading data from board %d (%d. error)", errorCode, b, fReadError[b]);
+			}
+			// sleep for a microsecond
+			nanosleep((const struct timespec[]){{0, 1000}}, (struct timespec*) NULL);
 			return FALSE;
 		}
 		if(fBufferSize[b] > 0) {
@@ -506,13 +514,15 @@ void CaenDigitizer::ProgramDigitizer(int b)
 				// enable CFD mode
 				address = 0x1080 + ch*0x100;
 				CAEN_DGTZ_ReadRegister(fHandle[b], address, &data);
+				//std::cout<<"cfd - 0x"<<std::hex<<address<<" read 0x"<<data<<std::dec<<std::endl;
 				data |= 0x40; // no mask necessary, we just set one bit
 				CAEN_DGTZ_WriteRegister(fHandle[b], address, data);
+				//std::cout<<"cfd - 0x"<<std::hex<<address<<" wrote 0x"<<data<<std::dec<<std::endl;
 
 				// set CFD parameters
 				address = 0x103c + ch*0x100;
 				CAEN_DGTZ_ReadRegister(fHandle[b], address, &data);
-				data = (data & ~0xfff) | fSettings->CfdParameters(b, ch);
+				data = (data & ~0xfff) | (fSettings->CfdParameters(b, ch) & 0xfff);
 				CAEN_DGTZ_WriteRegister(fHandle[b], address, data);
 			}
 			// write extended TS, flags, and fine TS (from CFD) to extra word
@@ -520,6 +530,37 @@ void CaenDigitizer::ProgramDigitizer(int b)
 			CAEN_DGTZ_ReadRegister(fHandle[b], address, &data);
 			data = (data & ~0x700) | 0x200;
 			CAEN_DGTZ_WriteRegister(fHandle[b], address, data);
+
+			// if input range flag is set we use 0.5 Vpp instead of 2 Vpp range
+			if(fSettings->InputRange(b, ch)) {
+				address = 0x1028 + ch*0x100;
+				CAEN_DGTZ_ReadRegister(fHandle[b], address, &data);
+				data = (data & ~0x1) | 0x1;
+				CAEN_DGTZ_WriteRegister(fHandle[b], address, data);
+			} else {
+				address = 0x1028 + ch*0x100;
+				CAEN_DGTZ_ReadRegister(fHandle[b], address, &data);
+				data = (data & ~0x1) | 0x0;
+				CAEN_DGTZ_WriteRegister(fHandle[b], address, data);
+			}
+
+			if(fSettings->EnableZeroSuppression(b, ch)) {
+				// enable charge zero suppression
+				address = 0x1080 + ch*0x100;
+				CAEN_DGTZ_ReadRegister(fHandle[b], address, &data);
+				//std::cout<<"zs - 0x"<<std::hex<<address<<" read 0x"<<data<<std::dec<<std::endl;
+				data = (data & ~0x2000000) | 0x2000000;
+				CAEN_DGTZ_WriteRegister(fHandle[b], address, data);
+				//std::cout<<"zs - 0x"<<std::hex<<address<<" wrote 0x"<<data<<std::dec<<std::endl;
+
+				// set charge zero suppression threshold
+				address = 0x1044 + ch*0x100;
+				CAEN_DGTZ_ReadRegister(fHandle[b], address, &data);
+				//std::cout<<"zs thres. - 0x"<<std::hex<<address<<" read 0x"<<data<<std::dec<<std::endl;
+				data = (data & ~0xffff) | (fSettings->ChargeThreshold(b, ch) & 0xffff);
+				CAEN_DGTZ_WriteRegister(fHandle[b], address, data);
+				//std::cout<<"zs thres. - 0x"<<std::hex<<address<<" wrote 0x"<<data<<std::dec<<std::endl;
+			}
 		}
 	}
 
