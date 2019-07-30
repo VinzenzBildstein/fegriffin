@@ -48,8 +48,8 @@ void CaenDigitizer::Setup()
 			fBuffer.resize(fSettings->NumberOfBoards(), NULL);
 			fBufferSize.resize(fSettings->NumberOfBoards(), 0);
 			fWaveforms.resize(fSettings->NumberOfBoards(), NULL);
-			fNofEvents.resize(fSettings->NumberOfBoards(), NULL);
-			fLastNofEvents.resize(fSettings->NumberOfBoards(), NULL);
+			fNofEvents.resize(fSettings->NumberOfBoards(), 0);
+			fLastNofEvents.resize(fSettings->NumberOfBoards(), 0);
 		} catch(std::exception e) {
 			std::cerr<<"Failed to resize vectors for "<<fSettings->NumberOfBoards()<<" boards, and "<<fSettings->NumberOfChannels()<<" channels: "<<e.what()<<std::endl;
 			throw e;
@@ -72,13 +72,8 @@ void CaenDigitizer::Setup()
 				CAEN_DGTZ_CloseDigitizer(fHandle[b]);
 				throw std::runtime_error(format("Error %d when reading digitizer info", errorCode));
 			}
-#ifdef USE_CURSES
-			printw("\nConnected to CAEN Digitizer Model %s serial number %d as %d. board\n", boardInfo.ModelName, boardInfo.SerialNumber, b);
-			printw("\nFirmware is ROC %s, AMC %s\n", boardInfo.ROC_FirmwareRel, boardInfo.AMC_FirmwareRel);
-#else
 			std::cout<<std::endl<<"Connected to CAEN Digitizer Model "<<boardInfo.ModelName<<" serial number "<<boardInfo.SerialNumber<<" as "<<b<<". board, using port "<<fPort[b]<<", device "<<fDevice[b]<<std::endl;
 			std::cout<<std::endl<<"Firmware is ROC "<<boardInfo.ROC_FirmwareRel<<", AMC "<<boardInfo.AMC_FirmwareRel<<std::endl;
-#endif
 
 			std::stringstream str(boardInfo.AMC_FirmwareRel);
 			str>>majorNumber;
