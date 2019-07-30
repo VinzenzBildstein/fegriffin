@@ -18,14 +18,15 @@ public:
 	void StartAcquisition(HNDLE hDB);
 	void StopAcquisition();
 	INT  DataReady();
-	bool ReadData(char* event, const char* bankName, const int& maxSize, uint32_t& eventsRead);
+	bool ReadData(char* event, const int& maxSize, uint32_t& eventsRead);
 	void PrintAggregatesPerBlt();
 	void PrintEventsPerAggregate();
 	void Status();
 
 private:
 	void Setup();
-	void ProgramDigitizer(int board);
+	void ProgramPsdDigitizer(int board);
+	void ProgramPhaDigitizer(int board);
 	void Calibrate();
 	void CalibrationStatus();
 	bool CalibrationDone();
@@ -36,6 +37,9 @@ private:
 	std::vector<int> fHandle;
 	std::vector<int> fPort;
 	std::vector<int> fDevice;
+	std::vector<int> fFirmwareVersion;
+	enum class EFirmware : char { kPSD, kPHA };
+	std::vector<EFirmware> fFirmwareType;
 	// raw readout data
 	std::vector<char*>    fBuffer; 
 	std::vector<uint32_t> fBufferSize;
