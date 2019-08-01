@@ -83,9 +83,12 @@ void CaenDigitizer::Setup()
 			if(fFirmwareVersion[b] == 131 || fFirmwareVersion[b] == 132 || fFirmwareVersion[b] == 136) {
 				std::cout<<"Digitizer "<<b<<" has DPP-PSD firmware"<<std::endl;
 				fFirmwareType[b] = EFirmware::kPSD;
-			} else {
+			} else if(fFirmwareVersion[b] == V1730_DPP_PHA_CODE) {
 				std::cout<<"Digitizer "<<b<<" has DPP-PHA firmware"<<std::endl;
 				fFirmwareType[b] = EFirmware::kPHA;
+			} else {
+				//std::cout<<"Digitizer "<<b<<" has unknown firmware major version "<<fFirmwareVesion[b]<<std::endl;
+				throw std::runtime_error(format("Digitizer %d has unknown firmware major version %d", b, fFirmwareVesion[b]));
 			}
 		} else {// if(fHandle[b] == -1)
 			std::cout<<"Re-using handle for port "<<fPort[b]<<"/"<<fSettings->PortNumber(b)<<", device "<<fDevice[b]<<"/"<<fSettings->DeviceNumber(b)<<std::endl;
@@ -657,14 +660,6 @@ void CaenDigitizer::ProgramPhaDigitizer(int b)
 		throw std::runtime_error(format("Error %d when setting run sychronization", errorCode));
 	}
 
-	// for dpp only
-	//  errorCode = CAEN_DGTZ_SetDPPParameters(fHandle[b], fSettings->ChannelMask(b), static_cast<void*>(fSettings->ChannelParameter(b)));
-
-	if(errorCode != 0) {
-		throw std::runtime_error(format("Error %d when setting dpp parameters", errorCode));
-	}
-
-
 	//HPGE Registers - hard coded for channel 0. Registers are not read, just written.
 	address = 0x1020;
 	data = 0x00000271; 
@@ -918,6 +913,32 @@ void CaenDigitizer::ProgramPhaDigitizer(int b)
 	CAEN_DGTZ_WriteRegister(fHandle[b], address, data);
 	*/
 
+	// taken from CAENDigitizer library example ReadoutTest_DPP_PHA_x725_x730.c (needs to be compared to above registers):
+	//CAEN_DGTZ_DPP_PHA_Params_t DPPParams;
+
+	//for(int ch = 0; ch < fSettings->NumberOfChannels(); ++ch) {
+	//	DPPParams.thr[ch] = 100;   // Trigger Threshold (in LSB)
+	//	DPPParams.k[ch] = 3000;     // Trapezoid Rise Time (ns) 
+	//	DPPParams.m[ch] = 900;      // Trapezoid Flat Top  (ns) 
+	//	DPPParams.M[ch] = 50000;      // Decay Time Constant (ns) 
+	//	DPPParams.ftd[ch] = 500;    // Flat top delay (peaking time) (ns) 
+	//	DPPParams.a[ch] = 4;       // Trigger Filter smoothing factor (number of samples to average for RC-CR2 filter) Options: 1; 2; 4; 8; 16; 32
+	//	DPPParams.b[ch] = 200;     // Input Signal Rise time (ns) 
+	//	DPPParams.trgho[ch] = 1200;  // Trigger Hold Off
+	//	DPPParams.nsbl[ch] = 4;     //number of samples for baseline average calculation. Options: 1->16 samples; 2->64 samples; 3->256 samples; 4->1024 samples; 5->4096 samples; 6->16384 samples
+	//	DPPParams.nspk[ch] = 0;     //Peak mean (number of samples to average for trapezoid height calculation). Options: 0-> 1 sample; 1->4 samples; 2->16 samples; 3->64 samples
+	//	DPPParams.pkho[ch] = 2000;  //peak holdoff (ns)
+	//	DPPParams.blho[ch] = 500;   //Baseline holdoff (ns)
+	//	DPPParams.enf[ch] = 1.0; // Energy Normalization Factor
+	//	DPPParams.decimation[ch] = 0;  //decimation (the input signal samples are averaged within this number of samples): 0 ->disabled; 1->2 samples; 2->4 samples; 3->8 samples
+	//	DPPParams.dgain[ch] = 0;    //decimation gain. Options: 0->DigitalGain=1; 1->DigitalGain=2 (only with decimation >= 2samples); 2->DigitalGain=4 (only with decimation >= 4samples); 3->DigitalGain=8( only with decimation = 8samples).
+	//	DPPParams.otrej[ch] = 0;
+	//	DPPParams.trgwin[ch] = 0;  //Enable Rise time Discrimination. Options: 0->disabled; 1->enabled
+	//	DPPParams.twwdt[ch] = 100;  //Rise Time Validation Window (ns)
+	//}
+
+
+	//errorCode = CAEN_DGTZ_SetDPPParameters(handle, Params.ChannelMask, &DPPParams);
 
 	if(fDebug) std::cout<<"done with digitizer "<<b<<std::endl;
 }
