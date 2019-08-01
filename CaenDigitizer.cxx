@@ -314,6 +314,7 @@ bool CaenDigitizer::ReadData(char* event, const int& maxSize, uint32_t& eventsRe
 	int b;
 	//check if we have any data
 	int totalSize = 0;
+	const char* bankName;
 	for(b = 0; b < fSettings->NumberOfBoards(); ++b) {
 		// might want to replace this by CAENComm_BLTRead? see https://bitbucket.org/ttriumfdaq/v1730/src/master/optical/v1730Board.cxx
 		errorCode = CAEN_DGTZ_ReadData(fHandle[b], CAEN_DGTZ_SLAVE_TERMINATED_READOUT_MBLT, fBuffer, &fBufferSize);
@@ -353,7 +354,7 @@ bool CaenDigitizer::ReadData(char* event, const int& maxSize, uint32_t& eventsRe
 			fRawOutput.write(fBuffer, fBufferSize);
 		}
 
-		uint32_t nofEvents = GetNumberOfEvents(fBuffer[b], fBufferSize[b]);
+		uint32_t nofEvents = GetNumberOfEvents(fBuffer, fBufferSize);
 		fNofEvents[b] += nofEvents;
 		eventsRead += nofEvents;
 
