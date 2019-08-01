@@ -42,6 +42,9 @@ public:
 	void EnableBaseline(const bool& val) { fEnableBaseline = val; }
 	void CoincWindow(const uint32_t& val) { fCoincWindow = val; }
 	void CoincLatency(const uint32_t& val) { fCoincLatency = val; }
+	void InputRange(const bool& val) { fInputRange = val; }
+	void EnableZeroSuppression(const bool& val) { fEnableZeroSuppression = val; }
+	void ChargeThreshold(const uint32_t& val) { fChargeThreshold = val; }
 
 	//getters
 	uint32_t RecordLength() const { return fRecordLength; }
@@ -55,6 +58,9 @@ public:
 	bool EnableBaseline() const { return fEnableBaseline; }
 	uint32_t CoincWindow() const { return fCoincWindow; }
 	uint32_t CoincLatency() const { return fCoincLatency; }
+	bool InputRange() const { return fInputRange; }
+	bool EnableZeroSuppression() const { return fEnableZeroSuppression; }
+	uint32_t ChargeThreshold() const { return fChargeThreshold; }
 
 	friend bool operator==(const ChannelSettings& lh, const ChannelSettings& rh);
 	friend bool operator!=(const ChannelSettings& lh, const ChannelSettings& rh);
@@ -71,6 +77,9 @@ private:
   	bool fEnableBaseline;
   	uint32_t fCoincWindow;
   	uint32_t fCoincLatency;
+	bool fInputRange;
+	bool fEnableZeroSuppression;
+	uint32_t fChargeThreshold;
 };
 
 class BoardSettings {
@@ -130,6 +139,9 @@ public:
 	void EnableBaseline(const int& i, const bool& val) { fChannelSettings.at(i).EnableBaseline(val); }
 	void CoincWindow(const int& i, const uint32_t& val) { fChannelSettings.at(i).CoincWindow(val); }
 	void CoincLatency(const int& i, const uint32_t& val) { fChannelSettings.at(i).CoincLatency(val); }
+	void InputRange(const int& i, const bool& val) { fChannelSettings.at(i).InputRange(val); }
+	void EnableZeroSuppression(const int& i, const bool& val) { fChannelSettings.at(i).EnableZeroSuppression(val); }
+	void ChargeThreshold(const int& i, const uint32_t& val) { fChannelSettings.at(i).ChargeThreshold(val); }
 	
 	//channel getters
 	uint32_t RecordLength(const int& i) const { return fChannelSettings.at(i).RecordLength(); }
@@ -143,6 +155,9 @@ public:
 	bool EnableBaseline(const int& i) const { return fChannelSettings.at(i).EnableBaseline(); }
 	uint32_t CoincWindow(const int& i) const { return fChannelSettings.at(i).CoincWindow(); }
 	uint32_t CoincLatency(const int& i) const { return fChannelSettings.at(i).CoincLatency(); }
+	bool InputRange(const int& i) const { return fChannelSettings.at(i).InputRange(); }
+	bool EnableZeroSuppression(const int& i) const { return fChannelSettings.at(i).EnableZeroSuppression(); }
+	uint32_t ChargeThreshold(const int& i) const { return fChannelSettings.at(i).ChargeThreshold(); }
 	
 	friend bool operator==(const BoardSettings& lh, const BoardSettings& rh);
 	friend bool operator!=(const BoardSettings& lh, const BoardSettings& rh);
@@ -207,6 +222,9 @@ public:
 	bool EnableBaseline(int i, int j) const { return fBoardSettings.at(i).EnableBaseline(j); }
 	uint32_t CoincWindow(int i, int j) const { return fBoardSettings.at(i).CoincWindow(j); }
 	uint32_t CoincLatency(int i, int j) const { return fBoardSettings.at(i).CoincLatency(j); }
+	bool InputRange(int i, int j) const { return fBoardSettings.at(i).InputRange(j); }
+	bool EnableZeroSuppression(int i, int j) const { return fBoardSettings.at(i).EnableZeroSuppression(j); }
+	uint32_t ChargeThreshold(int i, int j) const { return fBoardSettings.at(i).ChargeThreshold(j); }
 
 	size_t BufferSize() const { return fBufferSize; }
 

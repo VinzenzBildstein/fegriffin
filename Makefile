@@ -27,15 +27,21 @@ ifneq ($(ROOTSYS),)
 	ROOTLIBS = $(shell root-config --libs)
 endif
 
-MODULES = $(LIB_DIR)/mfe.o grifc.o odb_io.o
+MODULES = $(LIB_DIR)/mfe.o
 
-all: fegriffin 
+all: fecaen 
 
-fegriffin: $(MIDASLIBS) fegriffin.o $(MODULES) CaenSettings.o CaenDigitizer.o
+fecaen: $(MIDASLIBS) fecaen.o $(MODULES) CaenSettings.o CaenDigitizer.o
 	$(CXX) -o $@ $(CXXFLAGS) $(OSFLAGS) $^ $(MIDASLIBS) $(ROOTLIBS) $(LIBS)
 
 %: %.cc $(MIDASLIBS) CaenSettings.o
 	$(CXX) -o $@ $(CXXFLAGS) $(OSFLAGS) $^ $(MIDASLIBS) $(ROOTLIBS) $(LIBS)
+
+%.o: %.c %.h
+	$(CC) $(CFLAGS) $(OSFLAGS) -c $<
+
+%.o: %.cxx %.hh
+	$(CXX) $(CXXFLAGS) $(OSFLAGS) -c $<
 
 %.o: %.c
 	$(CC) $(CFLAGS) $(OSFLAGS) -c $<
@@ -44,6 +50,6 @@ fegriffin: $(MIDASLIBS) fegriffin.o $(MODULES) CaenSettings.o CaenDigitizer.o
 	$(CXX) $(CXXFLAGS) $(OSFLAGS) -c $<
 
 clean::
-	-rm -f *.o *.exe fegriffin
+	-rm -f *.o *.exe fecaen
 
 # end

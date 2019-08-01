@@ -46,36 +46,41 @@ bool operator!=(const CAEN_DGTZ_DPP_PSD_Params_t& lh, const CAEN_DGTZ_DPP_PSD_Pa
 
 ChannelSettings::ChannelSettings(const V1730_TEMPLATE& templateSettings)
 {
-	fRecordLength   = templateSettings.record_length;
-	fDCOffset       = templateSettings.dc_offset;
-	fPreTrigger     = templateSettings.pre_trigger;
-	fPulsePolarity  = static_cast<CAEN_DGTZ_PulsePolarity_t>(templateSettings.pulse_polarity);
-	fEnableCfd      = templateSettings.enable_cfd;
-	fCfdParameters  = templateSettings.cfd_delay & 0xff;
-	fCfdParameters |= (templateSettings.cfd_fraction & 0x3) << 8;
-	fCfdParameters |= (templateSettings.cfd_interpolation_points & 0x3) << 10;
-	fEnableCoinc    = templateSettings.enable_coinc;
-	//fEnableCoincTrig= templateSettings.enable_coinc;
-	fEnableBaseline = templateSettings.enable_baseline;
-	fCoincWindow    = templateSettings.coinc_window;
-	fCoincLatency   = templateSettings.coinc_latency;
+	fRecordLength          = templateSettings.record_length;
+	fDCOffset              = templateSettings.dc_offset;
+	fPreTrigger            = templateSettings.pre_trigger;
+	fPulsePolarity         = static_cast<CAEN_DGTZ_PulsePolarity_t>(templateSettings.pulse_polarity);
+	fEnableCfd             = templateSettings.enable_cfd;
+	fCfdParameters         = templateSettings.cfd_delay & 0xff;
+	fCfdParameters        |= (templateSettings.cfd_fraction & 0x3) << 8;
+	fCfdParameters        |= (templateSettings.cfd_interpolation_points & 0x3) << 10;
+	fEnableCoinc           = templateSettings.enable_coinc;
+	fEnableBaseline        = templateSettings.enable_baseline;
+	fCoincWindow           = templateSettings.coinc_window;
+	fCoincLatency          = templateSettings.coinc_latency;
+	fInputRange            = templateSettings.input_range;
+	fEnableZeroSuppression = templateSettings.enable_zs;
+	fChargeThreshold       = templateSettings.charge_threshold;
 }
 
 #ifdef USE_TENV
 ChannelSettings::ChannelSettings(const int& boardNumber, const int& channelNumber, TEnv*& settings)
 {
-	fRecordLength   = settings->GetValue(Form("Board.%d.Channel.%d.RecordLength", boardNumber, channelNumber), 192);
-	fDCOffset       = settings->GetValue(Form("Board.%d.Channel.%d.DCOffset", boardNumber, channelNumber), 0x8000);
-	fPreTrigger     = settings->GetValue(Form("Board.%d.Channel.%d.RunSync", boardNumber, channelNumber), 80);
-	fPulsePolarity  = static_cast<CAEN_DGTZ_PulsePolarity_t>(settings->GetValue(Form("Board.%d.Channel.%d.PulsePolarity", boardNumber, channelNumber), CAEN_DGTZ_PulsePolarityNegative));//1
-	fEnableCfd      = settings->GetValue(Form("Board.%d.Channel.%d.EnableCfd", boardNumber, channelNumber), true);
-	fCfdParameters  = (settings->GetValue(Form("Board.%d.Channel.%d.CfdDelay", boardNumber, channelNumber), 5) & 0xff);
-	fCfdParameters |= (settings->GetValue(Form("Board.%d.Channel.%d.CfdFraction", boardNumber, channelNumber), 0) & 0x3) << 8;
-	fCfdParameters |= (settings->GetValue(Form("Board.%d.Channel.%d.CfdInterpolationPoints", boardNumber, channelNumber), 0) & 0x3) << 10;
-	fEnableCoinc    = settings->GetValue(Form("Board.%d.Channel.%d.EnableCoinc", boardNumber, channelNumber), false);
-	fEnableBaseline = settings->GetValue(Form("Board.%d.Channel.%d.EnableBaseline", boardNumber, channelNumber), false);
-	fCoincWindow    = settings->GetValue(Form("Board.%d.Channel.%d.CoincWindow", boardNumber, channelNumber), 5);
-	fCoincLatency   = settings->GetValue(Form("Board.%d.Channel.%d.CoincLatency", boardNumber, channelNumber), 2);
+	fRecordLength          = settings->GetValue(Form("Board.%d.Channel.%d.RecordLength", boardNumber, channelNumber), 192);
+	fDCOffset              = settings->GetValue(Form("Board.%d.Channel.%d.DCOffset", boardNumber, channelNumber), 0x8000);
+	fPreTrigger            = settings->GetValue(Form("Board.%d.Channel.%d.RunSync", boardNumber, channelNumber), 80);
+	fPulsePolarity         = static_cast<CAEN_DGTZ_PulsePolarity_t>(settings->GetValue(Form("Board.%d.Channel.%d.PulsePolarity", boardNumber, channelNumber), CAEN_DGTZ_PulsePolarityNegative));//1
+	fEnableCfd             = settings->GetValue(Form("Board.%d.Channel.%d.EnableCfd", boardNumber, channelNumber), true);
+	fCfdParameters         = (settings->GetValue(Form("Board.%d.Channel.%d.CfdDelay", boardNumber, channelNumber), 5) & 0xff);
+	fCfdParameters        |= (settings->GetValue(Form("Board.%d.Channel.%d.CfdFraction", boardNumber, channelNumber), 0) & 0x3) << 8;
+	fCfdParameters        |= (settings->GetValue(Form("Board.%d.Channel.%d.CfdInterpolationPoints", boardNumber, channelNumber), 0) & 0x3) << 10;
+	fEnableCoinc           = settings->GetValue(Form("Board.%d.Channel.%d.EnableCoinc", boardNumber, channelNumber), false);
+	fEnableBaseline        = settings->GetValue(Form("Board.%d.Channel.%d.EnableBaseline", boardNumber, channelNumber), false);
+	fCoincWindow           = settings->GetValue(Form("Board.%d.Channel.%d.CoincWindow", boardNumber, channelNumber), 5);
+	fCoincLatency          = settings->GetValue(Form("Board.%d.Channel.%d.CoincLatency", boardNumber, channelNumber), 2);
+	fInputRange            = settings->GetValue(Form("Board.%d.Channel.%d.InputRange", boardNumber, channelNumber), 2);
+	fEnableZeroSuppression = settings->GetValue(Form("Board.%d.Channel.%d.EnableZeroSuppression", boardNumber, channelNumber), 2);
+	fChargeThreshold       = settings->GetValue(Form("Board.%d.Channel.%d.ChargeThreshold", boardNumber, channelNumber), 2);
 }
 #endif
 
@@ -135,6 +140,15 @@ void ChannelSettings::ReadCustomSettings(const HNDLE& hDb, const HNDLE& hKey)
 		} else if(strcmp(key.name, "Coincidence latency") == 0 && key.num_values == 1) {
 			size = sizeof(fCoincLatency);
 			db_get_data(hDb, hSubKey, &fCoincLatency, &size, TID_WORD);
+		} else if(strcmp(key.name, "Input range") == 0 && key.num_values == 1) {
+			size = sizeof(fInputRange);
+			db_get_data(hDb, hSubKey, &fInputRange, &size, TID_BOOL);
+		} else if(strcmp(key.name, "Enable zero suppression") == 0 && key.num_values == 1) {
+			size = sizeof(fEnableZeroSuppression);
+			db_get_data(hDb, hSubKey, &fEnableZeroSuppression, &size, TID_BOOL);
+		} else if(strcmp(key.name, "Charge threshold") == 0 && key.num_values == 1) {
+			size = sizeof(fChargeThreshold);
+			db_get_data(hDb, hSubKey, &fChargeThreshold, &size, TID_WORD);
 		} else {
 			// we keep both channel and channelparameter (which are "per board") settings
 			// in the "Channel x" directory, so there might be unrecognized entries
@@ -193,6 +207,15 @@ void ChannelSettings::Print(const ChannelSettings& templateSettings)
 	if(fCoincLatency != templateSettings.CoincLatency()) {
 		std::cout<<"      coincidence latency "<<fCoincLatency<<std::endl;
 	}
+	if(fInputRange != templateSettings.InputRange()) {
+		std::cout<<"      input range "<<fInputRange<<std::endl;
+	}
+	if(fEnableZeroSuppression != templateSettings.EnableZeroSuppression()) {
+		std::cout<<"      enable zero suppression "<<fEnableZeroSuppression<<std::endl;
+	}
+	if(fChargeThreshold != templateSettings.ChargeThreshold()) {
+		std::cout<<"      charge threshold "<<fChargeThreshold<<std::endl;
+	}
 }
 
 void ChannelSettings::Print()
@@ -221,22 +244,27 @@ void ChannelSettings::Print()
 	std::cout<<"      coincidence "<<(fEnableCoinc?"enabled":"disabled")<<std::endl
 		<<"      baseline "<<(fEnableBaseline?"enabled":"disabled")<<std::endl
 		<<"      coincidence window "<<fCoincWindow<<std::endl
-		<<"      coincidence latency "<<fCoincLatency<<std::endl;
+		<<"      coincidence latency "<<fCoincLatency<<std::endl
+		<<"      input range "<<fInputRange<<std::endl
+		<<"      enable zero suppression "<<fEnableZeroSuppression<<std::endl
+		<<"      charge threshold "<<fChargeThreshold<<std::endl;
 }
 
 bool operator==(const ChannelSettings& lh, const ChannelSettings& rh)
 {
-	return (lh.fRecordLength    == rh.fRecordLength &&
-			  lh.fDCOffset        == rh.fDCOffset &&
-			  lh.fPreTrigger      == rh.fPreTrigger &&
-			  lh.fPulsePolarity   == rh.fPulsePolarity &&
-			  lh.fEnableCfd       == rh.fEnableCfd &&
-			  lh.fCfdParameters   == rh.fCfdParameters &&
-			  lh.fEnableCoinc     == rh.fEnableCoinc &&
-			  //lh.fEnableCoincTrig == rh.fEnableCoincTrig &&
-			  lh.fEnableBaseline  == rh.fEnableBaseline &&
-			  lh.fCoincWindow     == rh.fCoincWindow &&
-			  lh.fCoincLatency    == rh.fCoincLatency);
+	return (lh.fRecordLength          == rh.fRecordLength &&
+			  lh.fDCOffset              == rh.fDCOffset &&
+			  lh.fPreTrigger            == rh.fPreTrigger &&
+			  lh.fPulsePolarity         == rh.fPulsePolarity &&
+			  lh.fEnableCfd             == rh.fEnableCfd &&
+			  lh.fCfdParameters         == rh.fCfdParameters &&
+			  lh.fEnableCoinc           == rh.fEnableCoinc &&
+			  lh.fEnableBaseline        == rh.fEnableBaseline &&
+			  lh.fCoincWindow           == rh.fCoincWindow &&
+			  lh.fCoincLatency          == rh.fCoincLatency &&
+			  lh.fInputRange            == rh.fInputRange &&
+			  lh.fEnableZeroSuppression == rh.fEnableZeroSuppression &&
+			  lh.fChargeThreshold       == rh.fChargeThreshold);
 }
 
 bool operator!=(const ChannelSettings& lh, const ChannelSettings& rh)
@@ -891,6 +919,9 @@ bool CaenSettings::ReadOdb(HNDLE hDB)
 			<<"enable_baseline "<<templateSettings.enable_baseline<<std::endl
 			<<"coinc_window "<<templateSettings.coinc_window<<std::endl
 			<<"coinc_latency "<<templateSettings.coinc_latency<<std::endl
+			<<"input range "<<templateSettings.input_range<<std::endl
+			<<"enable zero suppression "<<templateSettings.enable_zs<<std::endl
+			<<"charge threshold "<<templateSettings.charge_threshold<<std::endl
 			<<"pile_up_rejection_mode "<<templateSettings.pile_up_rejection_mode<<std::endl
 			<<"pile_up_gap "<<templateSettings.pile_up_gap<<std::endl
 			<<"baseline_threshold "<<templateSettings.baseline_threshold<<std::endl
