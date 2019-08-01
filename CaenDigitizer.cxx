@@ -87,8 +87,8 @@ void CaenDigitizer::Setup()
 				std::cout<<"Digitizer "<<b<<" has DPP-PHA firmware"<<std::endl;
 				fFirmwareType[b] = EFirmware::kPHA;
 			} else {
-				//std::cout<<"Digitizer "<<b<<" has unknown firmware major version "<<fFirmwareVesion[b]<<std::endl;
-				throw std::runtime_error(format("Digitizer %d has unknown firmware major version %d", b, fFirmwareVesion[b]));
+				//std::cout<<"Digitizer "<<b<<" has unknown firmware major version "<<fFirmwareVersion[b]<<std::endl;
+				throw std::runtime_error(format("Digitizer %d has unknown firmware major version %d", b, fFirmwareVersion[b]));
 			}
 		} else {// if(fHandle[b] == -1)
 			std::cout<<"Re-using handle for port "<<fPort[b]<<"/"<<fSettings->PortNumber(b)<<", device "<<fDevice[b]<<"/"<<fSettings->DeviceNumber(b)<<std::endl;
