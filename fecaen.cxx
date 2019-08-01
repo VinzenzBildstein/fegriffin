@@ -1,5 +1,5 @@
-/* -------------- fedescant: for CAEN VX1730 digitizers ------------- */
-/*    fedescant.cxx: midas frontend interface (init,start/stopRun,readEvent) */
+/* -------------- fecaen: for CAEN VX1730 digitizers ------------- */
+/*    fecaen.cxx: midas frontend interface (init,start/stopRun,readEvent) */
 /* odb_settings.c: functions to read and apply odb electronics settings    */
 
 #include <stdio.h>
@@ -22,7 +22,7 @@
 extern "C" {
 #endif
 
-char fename[STRING_LEN]="fedescant";
+char fename[STRING_LEN]="fecaen";
 
 /////////////////////////  Midas Variables ////////////////////////////////////
 char *frontend_name = fename;                        /* fe MIDAS client name */
