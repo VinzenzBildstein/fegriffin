@@ -317,8 +317,6 @@ bool CaenDigitizer::ReadData(char* event, const int& maxSize, uint32_t& eventsRe
 	int wordsRead = 0;
 	int totalWordsRead = 0;
 	eventsRead = 0;
-	//check if we have any data
-	int totalSize = 0;
 	for(int b = 0; b < fSettings->NumberOfBoards(); ++b) {
 		// check event size (number of 32-bit words)
 		CAEN_DGTZ_ReadRegister(fHandle[b], address, &nofWords);
@@ -341,7 +339,7 @@ bool CaenDigitizer::ReadData(char* event, const int& maxSize, uint32_t& eventsRe
 			data += wordsRead;
 
 			// check number of events in the data
-			uint32_t nofEvents = GetNumberOfEvents(data, wordsRead);
+			uint32_t nofEvents = GetNumberOfEvents(reinterpret_cast<char*>(data), wordsRead);
 			fNofEvents[b] += nofEvents;
 			eventsRead += nofEvents;
 		}	
