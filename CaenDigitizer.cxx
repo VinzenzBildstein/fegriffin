@@ -333,15 +333,15 @@ bool CaenDigitizer::ReadData(char* event, const int& maxSize, uint32_t& eventsRe
 		while(nofWords > 0 && errorCode == CAENComm_Success) {
 			errorCode = CAENComm_MBLTRead(fHandle[b],0, data, nofWords, &wordsRead);
 			
-			//increment pointers/counters
-			totalWordsRead += wordsRead;
-			nofWords -= wordsRead;
-			data += wordsRead;
-
 			// check number of events in the data
 			uint32_t nofEvents = GetNumberOfEvents(reinterpret_cast<char*>(data), wordsRead);
 			fNofEvents[b] += nofEvents;
 			eventsRead += nofEvents;
+
+			//increment pointers/counters
+			totalWordsRead += wordsRead;
+			nofWords -= wordsRead;
+			data += wordsRead;
 		}	
 
 		//close bank
