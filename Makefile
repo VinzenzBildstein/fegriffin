@@ -5,7 +5,7 @@ LIBS = -lm -lz -lutil -lpthread -lCAENDigitizer -lrt
 
 DRV_DIR         = $(MIDASSYS)/drivers
 INC_DIR         = $(MIDASSYS)/include
-LIB_DIR         = $(MIDASSYS)/linux/lib
+LIB_DIR         = $(MIDASSYS)/lib
 
 # MIDAS library
 MIDASLIBS = $(LIB_DIR)/libmidas.a
@@ -29,12 +29,12 @@ endif
 
 MODULES = $(LIB_DIR)/mfe.o
 
-all: fecaen 
+all: fecaen WriteToOdb
 
 fecaen: $(MIDASLIBS) fecaen.o $(MODULES) CaenSettings.o CaenDigitizer.o
 	$(CXX) -o $@ $(CXXFLAGS) $(OSFLAGS) $^ $(MIDASLIBS) $(ROOTLIBS) $(LIBS)
 
-%: %.cc $(MIDASLIBS) CaenSettings.o
+%: %.cxx $(MIDASLIBS) CaenSettings.o
 	$(CXX) -o $@ $(CXXFLAGS) $(OSFLAGS) $^ $(MIDASLIBS) $(ROOTLIBS) $(LIBS)
 
 %.o: %.c %.h
