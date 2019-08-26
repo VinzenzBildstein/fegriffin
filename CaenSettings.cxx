@@ -19,6 +19,7 @@
 #include "CaenOdb.h"
 
 // this assumes that the right hand side is the template!!!
+//PSD settings
 bool operator==(const CAEN_DGTZ_DPP_PSD_Params_t& lh, const CAEN_DGTZ_DPP_PSD_Params_t& rh)
 {
 	for(int i = 0; i < MAX_DPP_PSD_CHANNEL_SIZE; ++i) {

@@ -5,7 +5,7 @@ LIBS = -lm -lz -lutil -lpthread -lCAENDigitizer -lrt
 
 DRV_DIR         = $(MIDASSYS)/drivers
 INC_DIR         = $(MIDASSYS)/include
-LIB_DIR         = $(MIDASSYS)/linux/lib
+LIB_DIR         = $(MIDASSYS)/lib
 
 # MIDAS library
 MIDASLIBS = $(LIB_DIR)/libmidas.a
