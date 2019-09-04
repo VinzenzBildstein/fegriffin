@@ -4,7 +4,6 @@
 #include <fstream>
 #include <sstream>
 #include <iomanip>
-#include <curses.h>
 #include <cstdlib>
 #include <cstring>
 #include <algorithm>

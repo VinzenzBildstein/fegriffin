@@ -29,12 +29,12 @@ endif
 
 MODULES = $(LIB_DIR)/mfe.o
 
-all: fecaen 
+all: fecaen WriteToOdb
 
 fecaen: $(MIDASLIBS) fecaen.o $(MODULES) CaenSettings.o CaenDigitizer.o
 	$(CXX) -o $@ $(CXXFLAGS) $(OSFLAGS) $^ $(MIDASLIBS) $(ROOTLIBS) $(LIBS)
 
-%: %.cc $(MIDASLIBS) CaenSettings.o
+%: %.cxx $(MIDASLIBS) CaenSettings.o
 	$(CXX) -o $@ $(CXXFLAGS) $(OSFLAGS) $^ $(MIDASLIBS) $(ROOTLIBS) $(LIBS)
 
 %.o: %.c %.h
