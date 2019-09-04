@@ -1,7 +1,7 @@
 # Makefile
 # $Id$
 
-LIBS = -lm -lz -lutil -lpthread -lCAENDigitizer -lrt
+LIBS = -lm -lz -lutil -lpthread -lCAENComm -lCAENVME -lCAENDigitizer -lrt
 
 DRV_DIR         = $(MIDASSYS)/drivers
 INC_DIR         = $(MIDASSYS)/include
