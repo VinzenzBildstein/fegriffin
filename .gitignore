@@ -2,6 +2,7 @@
 .*.TXT
 *.o
 fecaen
+WriteToOdb
 *.hst
 *.idf
 *.idx
