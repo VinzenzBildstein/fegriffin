@@ -714,17 +714,22 @@ void CaenDigitizer::ProgramPhaDigitizer(int b)
 
 	//Input Rise Time
 	address = 0x1058;
-       	data = 0x0000000C; //C (hex) = 192ns for 725 
+	//data = 0x00000030; //30 (hex) = 768ns for 725 
+	//	data = 0x000000019; //19 (hex) = 400ns for 725 
+       	data = 0x00000018; //18 (hex) = 384ns for 725 
+       	//data = 0x00000017; //17 (hex) = 368ns for 725 
+	//       	data = 0x000000016; //16 (hex) = 352ns for 725 
+       	//data = 0x0000000C; //C (hex) = 192ns for 725 
 	//data = 0x00000008; //8 (hex) = 128ns for 725 
-	//	data = 0x00000006; //6 (hex) = 24ns for 725 
+       	//data = 0x00000006; //6 (hex) = 24ns for 725 
 	CAEN_DGTZ_WriteRegister(fHandle[b], address, data);
 
 	//Trapezoid Rise time. Rise time and Flat top should not exceed 16us for 725
 	address = 0x105C;
 	//	data = 0x0000039D; //39D(hex) = 14800ns
-	//	data = 0x0000036B; //36B(hex) = 14000ns //DEADTIME MODE
+		data = 0x0000036B; //36B(hex) = 14000ns //DEADTIME MODE
 	//	data = 0x000002EE; //2EE(hex) = 12000ns
-       	data = 0x000002A3; //2A3(hex) = 10800ns //this was recommended by the detector manufacturers
+       	//data = 0x000002A3; //2A3(hex) = 10800ns //this was recommended by the detector manufacturers
 	//	data = 0x00000138; //138(hex) = 4992ns
 	//	data = 0x000000BC; //188(hex) = 3008ns
 	CAEN_DGTZ_WriteRegister(fHandle[b], address, data);
@@ -752,7 +757,9 @@ void CaenDigitizer::ProgramPhaDigitizer(int b)
 	//	data = 0x00000DBD; //DBD(hex) = 55,000ns for 725
 	//      data = 0x00000CD0; //CD0(hex) = 52,480ns for 725
 	//        data = 0x00000C74; //C74(hex) = 51,008ns for 725
-	data = 0x00000C35; //C35(hex) = 50,000ns for 725 //deadtime mode
+        //data = 0x00000C55; //C55(hex) = 50,512ns for 725
+	data = 0x00000C45; //C45(hex) = 50,256ns for 725 //deadtime mode
+	//data = 0x00000C35; //C35(hex) = 50,000ns for 725 //deadtime mode
 	//data = 0x00000BB8; //BB8(hex) = 48000ns for 725 
 	//data = 0x00000B7C; //B7C(hex) = 47040ns for 725 
        	//data = 0x00000ABE; //ABE(hex) = 44,000ns for 725
@@ -772,7 +779,7 @@ void CaenDigitizer::ProgramPhaDigitizer(int b)
 	address = 0x106C;
 	data = 0x000000D; //D (hex) 13 in LSB
 	//	data = 0x00000016; //16 (hex) 22 in LSB
-	//	data = 0x00000032; //32 (hex) 50 in LSB
+	//data = 0x00000032; //32 (hex) 50 in LSB
 	//	data = 0x00000046; //46(hex) 70 in LSB
 	//	data = 0x00000064; //64(hex) 100 in LSB
 	CAEN_DGTZ_WriteRegister(fHandle[b], address, data);
@@ -782,16 +789,18 @@ void CaenDigitizer::ProgramPhaDigitizer(int b)
 	data = 0x00000000; //disabled
 	CAEN_DGTZ_WriteRegister(fHandle[b], address, data);
 
-	//Trigger Holdoff
+	//Trigger Holdoff - 10 bits = max. 0x3ff or 1023
 	address = 0x1074;
-	data = 0x000030D4; //30D4 (hex) = 12500(dec) = 200,000 ns = 200us 725 
-	//	data = 0x0000004B; //4B (hex) = 75(dec) = 1200 ns for 725 
+	//	data = 0x000001F4; //1F4 (hex) = 500(dec) = 8,000 ns = 6us 725 
+      	//data = 0x00000177; //177 (hex) = 375(dec) = 6,000 ns = 6us 725 
+      	data = 0x0000004B; //4B (hex) = 75(dec) = 1200 ns for 725  //this is about the length of the RC-Cr2 signal
 	//	data = 0x0000001E; //1E (hex) = 30(dec) =  480 ns for 725 
 	CAEN_DGTZ_WriteRegister(fHandle[b], address, data);
 
 	//Peak Holdoff how close 2 trapezoids must be to be piled up
 	address = 0x1078;
-	data = 0x00000177; //177 (hex) = 6000ns for 725
+	data = 0x0000036B; //36B(hex) = 14000ns //this should be the same as the trapezoid rise time (decay)
+	//	data = 0x00000177; //177 (hex) = 6000ns for 725
 	//	data = 0x000000FA; //FA (hex) = 4000ns for 725
 	//	data = 0x0000007D; //7D (hex) = 2000ns for 725
 	//	data = 0x0000003E; //3E (hex) = 992ns for 725
@@ -800,18 +809,20 @@ void CaenDigitizer::ProgramPhaDigitizer(int b)
 	//DPP algorithm control
 	//Trapezoid Rescaling, Decimation, Decimation Gain, Peak Mean, Invert Input
 	address = 0x1080;
-       	data = 0x0C311013; //peak sampling set to 4 samples 
-	//	data = 0x0C310013; //this has the peak sampling for the trapezoid set to 1 sample 
+       	//data = 0x0C303013; //peak sampling set to 64 samples 
+       	data = 0x0C301013; //peak sampling set to 4 samples 
+       	//data = 0x0C302013; //peak sampling set to 16 samples 
+	//data = 0x0C300013; //this has the peak sampling for the trapezoid set to 1 sample 
 	CAEN_DGTZ_WriteRegister(fHandle[b], address, data);
 
-	//Shaped Trigger Width (fast descriminator output)
+	//Shaped Trigger Width (fast descriminator output) logic signal to propagate trigger info
 	address = 0x1084;
 	data = 0x00000006; //6 (hex) = 96 ns for 725
 	CAEN_DGTZ_WriteRegister(fHandle[b], address, data);
 
 	//DC offset value. 
 	address = 0x1098;
-	data = 0x00008000; //if the offset is 0x8000, it is at half value.  8000(hex) = 32768 (dec) which is half of 2^14
+	data = 0x0000E000; //if the offset is 0x8000, it is at half value.  8000(hex) = 32768 (dec) which is half of 2^14
 	CAEN_DGTZ_WriteRegister(fHandle[b], address, data);
 
 	//DPP Algorithm Control 2: Local shaped trigger mode, Enable local shape trigger, local trigger validtion mode, enable trigger validation, extra words...
@@ -821,9 +832,10 @@ void CaenDigitizer::ProgramPhaDigitizer(int b)
 	//      	data = 0x00000000; // everyting disabled? 
 	CAEN_DGTZ_WriteRegister(fHandle[b], address, data);
 
-	//Veto width 
+	//Veto width , enabled with register 10A0
 	address = 0x10D4;
-	data = 0x0000000A; //A (hex) = 1048us for 725
+	//	data = 0x0000000A; //A (hex) = 1048us for 725
+	data = 0x00000000; //0 (hex) = 1048us for 725
 	CAEN_DGTZ_WriteRegister(fHandle[b], address, data);
 
 	//Readout Control for VME boards mostly
@@ -854,9 +866,10 @@ void CaenDigitizer::ProgramPhaDigitizer(int b)
 	//write some special registers directly, enable EXTRA word
 	address = 0x8000;
 	CAEN_DGTZ_ReadRegister(fHandle[b], address, &data);
-	       	data = (data & ~0xfeffff) | 0x7E3910; //record waveform with dual trace(trapezoid and input) + holdoff digital, pha settings	
+       	data = (data & ~0xfeffff) | 0x7E3910; //record waveform with dual trace(trapezoid and input) + holdoff digital, pha settings	
 		//data = (data & ~0xeffff) | 0xE8910; //record waveform with dual trace(input and trapezoid-baseline) + peaking digital, pha settings	
-	//       	data = (data & ~0xeffff) | 0xE3910; //record waveform with dual trace(trapezoid and input) + peaking digital, pha settings	
+	//	       	data = (data & ~0xeffff) | 0xE3910; //record waveform with dual trace(trapezoid and input) + peaking digital, pha settings
+	//	data = (data & ~0xeffff) | 0xE2910; //record waveform with dual trace(rc-cr2 and input) + peaking digital, pha settings	
 	CAEN_DGTZ_WriteRegister(fHandle[b], address, data);
 
 	for(int ch = 0; ch < fSettings->NumberOfChannels(); ++ch) {
