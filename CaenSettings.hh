@@ -38,7 +38,7 @@ public:
 	void EnableCfd(const bool& val) { fEnableCfd = val; }
 	void CfdParameters(const uint32_t& val) { fCfdParameters = val; }
 	void EnableCoinc(const bool& val) { fEnableCoinc = val; }
-	void EnableCoincTrig(const bool& val) { fEnableCoincTrig = val; }
+	//void EnableCoincTrig(const bool& val) { fEnableCoincTrig = val; }
 	void EnableBaseline(const bool& val) { fEnableBaseline = val; }
 	void CoincWindow(const uint32_t& val) { fCoincWindow = val; }
 	void CoincLatency(const uint32_t& val) { fCoincLatency = val; }
@@ -54,7 +54,7 @@ public:
 	bool EnableCfd() const { return fEnableCfd; }
 	uint32_t CfdParameters() const { return fCfdParameters; }
 	bool EnableCoinc() const { return fEnableCoinc; }
-	bool EnableCoincTrig() const { return fEnableCoincTrig; }
+	//bool EnableCoincTrig() const { return fEnableCoincTrig; }
 	bool EnableBaseline() const { return fEnableBaseline; }
 	uint32_t CoincWindow() const { return fCoincWindow; }
 	uint32_t CoincLatency() const { return fCoincLatency; }
@@ -73,7 +73,7 @@ private:
 	bool fEnableCfd;
 	uint16_t fCfdParameters;
   	bool fEnableCoinc;
-  	bool fEnableCoincTrig;
+  	//bool fEnableCoincTrig;
   	bool fEnableBaseline;
   	uint32_t fCoincWindow;
   	uint32_t fCoincLatency;
@@ -108,7 +108,8 @@ public:
 	void RunSync(const CAEN_DGTZ_RunSyncMode_t& val) { fRunSync = val; }
 	void EventAggregation(const int& val) { fEventAggregation = val; }
 	void TriggerMode(const CAEN_DGTZ_TriggerMode_t& val) { fTriggerMode = val; }
-	void ChannelParameter(const CAEN_DGTZ_DPP_PSD_Params_t& val) { fChannelParameter = val; }
+	void ChannelPsdParameter(const CAEN_DGTZ_DPP_PSD_Params_t& val) { fChannelPsdParameter = val; }
+	void ChannelPhaParameter(const CAEN_DGTZ_DPP_PHA_Params_t& val) { fChannelPhaParameter = val; }
 	void PortNumber(const int& val) { fPortNumber = val; }
 	void DeviceNumber(const int& val) { fDeviceNumber = val; }
 
@@ -123,7 +124,8 @@ public:
 	CAEN_DGTZ_RunSyncMode_t RunSync() const { return fRunSync; }
 	int EventAggregation() const { return fEventAggregation; }
 	CAEN_DGTZ_TriggerMode_t TriggerMode() const { return fTriggerMode; }
-	const CAEN_DGTZ_DPP_PSD_Params_t* ChannelParameter() const { return &fChannelParameter; }
+	const CAEN_DGTZ_DPP_PSD_Params_t* ChannelPsdParameter() const { return &fChannelPsdParameter; }
+	const CAEN_DGTZ_DPP_PHA_Params_t* ChannelPhaParameter() const { return &fChannelPhaParameter; }
 	int PortNumber() const { return fPortNumber; }
 	int DeviceNumber() const { return fDeviceNumber; }
 
@@ -135,7 +137,7 @@ public:
 	void EnableCfd(const int& i, const bool& val) { fChannelSettings.at(i).EnableCfd(val); }
 	void CfdParameters(const int& i, const uint32_t& val) { fChannelSettings.at(i).CfdParameters(val); }
 	void EnableCoinc(const int& i, const bool& val) { fChannelSettings.at(i).EnableCoinc(val); }
-	void EnableCoincTrig(const int& i, const bool& val) { fChannelSettings.at(i).EnableCoincTrig(val); }
+	//void EnableCoincTrig(const int& i, const bool& val) { fChannelSettings.at(i).EnableCoincTrig(val); }
 	void EnableBaseline(const int& i, const bool& val) { fChannelSettings.at(i).EnableBaseline(val); }
 	void CoincWindow(const int& i, const uint32_t& val) { fChannelSettings.at(i).CoincWindow(val); }
 	void CoincLatency(const int& i, const uint32_t& val) { fChannelSettings.at(i).CoincLatency(val); }
@@ -151,7 +153,7 @@ public:
 	bool EnableCfd(const int& i) const { return fChannelSettings.at(i).EnableCfd(); }
 	uint32_t CfdParameters(const int& i) const { return fChannelSettings.at(i).CfdParameters(); }
 	bool EnableCoinc(const int& i) const { return fChannelSettings.at(i).EnableCoinc(); }
-	bool EnableCoincTrig(const int& i) const { return fChannelSettings.at(i).EnableCoincTrig(); }
+	//bool EnableCoincTrig(const int& i) const { return fChannelSettings.at(i).EnableCoincTrig(); }
 	bool EnableBaseline(const int& i) const { return fChannelSettings.at(i).EnableBaseline(); }
 	uint32_t CoincWindow(const int& i) const { return fChannelSettings.at(i).CoincWindow(); }
 	uint32_t CoincLatency(const int& i) const { return fChannelSettings.at(i).CoincLatency(); }
@@ -174,7 +176,8 @@ private:
 	CAEN_DGTZ_RunSyncMode_t fRunSync; //enum
 	int fEventAggregation;
 	CAEN_DGTZ_TriggerMode_t fTriggerMode; //enum
-	CAEN_DGTZ_DPP_PSD_Params_t fChannelParameter;
+	CAEN_DGTZ_DPP_PSD_Params_t fChannelPsdParameter;
+	CAEN_DGTZ_DPP_PHA_Params_t fChannelPhaParameter;
 	std::vector<ChannelSettings> fChannelSettings;
 };
 
@@ -207,7 +210,8 @@ public:
 	CAEN_DGTZ_RunSyncMode_t RunSync(int i) const { return fBoardSettings.at(i).RunSync(); }
 	int EventAggregation(int i) const { return fBoardSettings.at(i).EventAggregation(); }
 	CAEN_DGTZ_TriggerMode_t TriggerMode(int i) const { return fBoardSettings.at(i).TriggerMode(); }
-	const CAEN_DGTZ_DPP_PSD_Params_t* ChannelParameter(int i) const { return fBoardSettings.at(i).ChannelParameter(); }
+	const CAEN_DGTZ_DPP_PSD_Params_t* ChannelPsdParameter(int i) const { return fBoardSettings.at(i).ChannelPsdParameter(); }
+	const CAEN_DGTZ_DPP_PHA_Params_t* ChannelPhaParameter(int i) const { return fBoardSettings.at(i).ChannelPhaParameter(); }
 	EBoardType BoardType(int i) const { return fBoardSettings.at(i).BoardType(); }
 
 	//channel parameters
@@ -218,7 +222,7 @@ public:
 	bool EnableCfd(int i, int j) const { return fBoardSettings.at(i).EnableCfd(j); }
 	uint16_t CfdParameters(int i, int j) const { return fBoardSettings.at(i).CfdParameters(j); }
 	bool EnableCoinc(int i, int j) const { return fBoardSettings.at(i).EnableCoinc(j); }
-	bool EnableCoincTrig(int i, int j) const { return fBoardSettings.at(i).EnableCoincTrig(j); }
+	//bool EnableCoincTrig(int i, int j) const { return fBoardSettings.at(i).EnableCoincTrig(j); }
 	bool EnableBaseline(int i, int j) const { return fBoardSettings.at(i).EnableBaseline(j); }
 	uint32_t CoincWindow(int i, int j) const { return fBoardSettings.at(i).CoincWindow(j); }
 	uint32_t CoincLatency(int i, int j) const { return fBoardSettings.at(i).CoincLatency(j); }

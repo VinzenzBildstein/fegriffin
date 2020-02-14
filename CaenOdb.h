@@ -59,21 +59,35 @@ typedef struct {
   BOOL		enable_zs;
   WORD		charge_threshold;
 
-  // for channel parameters structure
-  WORD      pile_up_rejection_mode;
-  WORD      pile_up_gap;
-  WORD      baseline_threshold;
-  WORD      baseline_timeout;
-  WORD      trigger_holdoff;
+  // for channel PSD and PHA parameters structure
   WORD		threshold;
   WORD		baseline_samples;
+  WORD      trigger_holdoff;
+  WORD		trigger_validation_window;
+
+  // for channel PSD parameters structure
+  WORD      pile_up_rejection_mode;
+  WORD      pile_up_gap;
   WORD		long_gate;
   WORD		short_gate;
   WORD		pre_gate;
   WORD		self_trigger;
-  WORD		trigger_configuration;
-  WORD		trigger_validation_window;
   WORD		charge_sensitivity;
+
+  // for channel PHA parameters structure
+  WORD		trap_decay_time;
+  WORD		trap_flat_top;
+  WORD		trap_rise_time;
+  WORD		peaking_time;
+  WORD		smoothing_factor;
+  WORD		input_rise_time;
+  WORD		peak_samples;
+  WORD		peak_holdoff;
+  WORD		baseline_holdoff;
+  WORD		rise_time_validation_window;
+  WORD		digital_gain;
+  WORD		energy_normalization;
+  WORD		decimation;
 } V1730_TEMPLATE;
 
 #define V1730_TEMPLATE_STR(_name) const char *_name[] = {\
@@ -107,20 +121,30 @@ typedef struct {
 	"Input range = BOOL : 0",\
 	"Enable zero suppression = BOOL : 0",\
 	"Charge threshold = WORD : 0",\
-	"Pile up rejection mode = WORD : 0",\
-	"Pile up gap = WORD : 100",\
-	"Baseline threshold = WORD : 3",\
-	"Baseline timeout = WORD : 100",\
-	"Trigger holdoff = WORD : 8",\
 	"Threshold = WORD : 50",\
 	"Baseline samples = WORD : 4",\
+	"Trigger holdoff = WORD : 8",\
+	"Trigger validation window = WORD : 50",\
+	"Pile up rejection mode = WORD : 0",\
+	"Pile up gap = WORD : 100",\
 	"Long gate = WORD : 50",\
 	"Short gate = WORD : 24",\
 	"Pre gate = WORD : 8",\
 	"Self trigger = WORD : 1",\
-	"Trigger configuration = WORD : 1",\
-	"Trigger validation window = WORD : 50",\
 	"Charge sensitivity = WORD : 0",\
+	"Trapezoid decay time = WORD : 50000",\
+	"Trapezoid flat top = WORD : 1200",\
+	"Trapezoid rise time = WORD : 6000",\
+	"Peaking time = WORD : 1000",\
+	"Smoothing factor = WORD : 0",\
+	"Input rise time = WORD : 400",\
+	"Peak samples = WORD : 0",\
+	"Peak holdoff = WORD : 6000",\
+	"Baseline holdoff = WORD : 6",\
+	"Rise time validation window = WORD : 0",\
+	"Digital gain = WORD : 0",\
+	"Energy normalization = WORD : 0",\
+	"Decimation = WORD : 0",\
 	"",\
 	NULL }
 

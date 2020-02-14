@@ -30,6 +30,7 @@ private:
 	void Calibrate();
 	void CalibrationStatus();
 	bool CalibrationDone();
+	bool BoardsReady();
 	uint32_t GetNumberOfEvents(char* fBuffer, uint32_t fBufferSize);
 
 	CaenSettings* fSettings;
@@ -41,13 +42,9 @@ private:
 	enum class EFirmware : char { kPSD, kPHA };
 	std::vector<EFirmware> fFirmwareType;
 	// raw readout data
-	std::vector<char*>    fBuffer; 
-	std::vector<uint32_t> fBufferSize;
-	// DPP events
-	//std::vector<CAEN_DGTZ_DPP_PSD_Event_t**> fEvents;
-	//std::vector<std::vector<uint32_t> >      fNofEvents;
-	// waveforms
-	std::vector<CAEN_DGTZ_DPP_PSD_Waveforms_t*> fWaveforms;
+	char*            fBuffer; 
+	uint32_t         fBufferSize;
+	uint32_t         fMaxBufferSize;
 
 	std::ofstream fRawOutput;
 

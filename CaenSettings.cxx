@@ -32,15 +32,52 @@ bool operator==(const CAEN_DGTZ_DPP_PSD_Params_t& lh, const CAEN_DGTZ_DPP_PSD_Pa
 		if(lh.tvaw[i] != rh.tvaw[0]) return false;
 		if(lh.nsbl[i] != rh.nsbl[0]) return false;
 	}
-	return (lh.blthr == rh.blthr &&
-	        lh.bltmo == rh.bltmo &&
-	        lh.trgho == rh.trgho &&
-	        //lh.trgc  == rh.trgc  && //this parameter is deprecated, no need to check it
-	        lh.purh  == rh.purh  &&
-	        lh.purgap  == rh.purgap);
+	return (lh.trgho  == rh.trgho &&
+	        lh.purh   == rh.purh  &&
+	        lh.purgap == rh.purgap);
 }
 
 bool operator!=(const CAEN_DGTZ_DPP_PSD_Params_t& lh, const CAEN_DGTZ_DPP_PSD_Params_t& rh)
+{
+	return !(lh == rh);
+}
+
+// this assumes that the right hand side is the template!!!
+//PHA settings
+bool operator==(const CAEN_DGTZ_DPP_PHA_Params_t& lh, const CAEN_DGTZ_DPP_PHA_Params_t& rh)
+{
+	for(int i = 0; i < MAX_DPP_PHA_CHANNEL_SIZE; ++i) {
+		if(lh.thr[i] != rh.thr[0]) return false;
+		if(lh.trgho[i] != rh.trgho[0]) return false;
+		if(lh.nsbl[i] != rh.nsbl[0]) return false;
+		if(lh.M[i] != rh.M[0]) return false;
+		if(lh.m[i] != rh.m[0]) return false;
+		if(lh.k[i] != rh.k[0]) return false;
+		if(lh.ftd[i] != rh.ftd[0]) return false;
+		if(lh.a[i] != rh.a[0]) return false;
+		if(lh.b[i] != rh.b[0]) return false;
+		if(lh.nspk[i] != rh.nspk[0]) return false;
+		if(lh.pkho[i] != rh.pkho[0]) return false;
+		if(lh.blho[i] != rh.blho[0]) return false;
+		if(lh.twwdt[i] != rh.twwdt[0]) return false;
+		if(lh.trgwin[i] != rh.trgwin[0]) return false;
+		if(lh.dgain[i] != rh.dgain[0]) return false;
+		if(lh.enf[i] != rh.enf[0]) return false;
+		if(lh.decimation[i] != rh.decimation[0]) return false;
+		if(lh.M[i] != rh.M[0]) return false;
+		if(lh.M[i] != rh.M[0]) return false;
+
+		//int enskim      [MAX_DPP_PHA_CHANNEL_SIZE]; // Enable energy skimming
+		//int eskimlld    [MAX_DPP_PHA_CHANNEL_SIZE]; // LLD    energy skimming
+		//int eskimuld    [MAX_DPP_PHA_CHANNEL_SIZE]; // ULD    energy skimming
+		//int blrclip     [MAX_DPP_PHA_CHANNEL_SIZE]; // Enable baseline restorer clipping
+		//int dcomp       [MAX_DPP_PHA_CHANNEL_SIZE]; // tt_filter compensation
+		//int trapbsl     [MAX_DPP_PHA_CHANNEL_SIZE]; // trapezoid baseline adjuster
+	}
+	return true;
+}
+
+bool operator!=(const CAEN_DGTZ_DPP_PHA_Params_t& lh, const CAEN_DGTZ_DPP_PHA_Params_t& rh)
 {
 	return !(lh == rh);
 }
@@ -260,7 +297,6 @@ bool operator==(const ChannelSettings& lh, const ChannelSettings& rh)
 			  lh.fEnableCfd             == rh.fEnableCfd &&
 			  lh.fCfdParameters         == rh.fCfdParameters &&
 			  lh.fEnableCoinc           == rh.fEnableCoinc &&
-			  lh.fEnableCoincTrig       == rh.fEnableCoincTrig &&
 			  lh.fEnableBaseline        == rh.fEnableBaseline &&
 			  lh.fCoincWindow           == rh.fCoincWindow &&
 			  lh.fCoincLatency          == rh.fCoincLatency &&
@@ -288,21 +324,37 @@ BoardSettings::BoardSettings(const int& nofChannels, const V1730_TEMPLATE& templ
 	fEventAggregation = templateSettings.event_aggregation;
 	fTriggerMode      = static_cast<CAEN_DGTZ_TriggerMode_t>(templateSettings.trigger_mode);
 	fChannelSettings.resize(nofChannels, ChannelSettings(templateSettings));
-	fChannelParameter.purh   = static_cast<CAEN_DGTZ_DPP_PUR_t>(templateSettings.pile_up_rejection_mode);
-	fChannelParameter.purgap = templateSettings.pile_up_gap;
-	fChannelParameter.blthr  = templateSettings.baseline_threshold;
-	fChannelParameter.bltmo  = templateSettings.baseline_timeout;
-	fChannelParameter.trgho  = templateSettings.trigger_holdoff;
+	fChannelPsdParameter.purh   = static_cast<CAEN_DGTZ_DPP_PUR_t>(templateSettings.pile_up_rejection_mode);
+	fChannelPsdParameter.purgap = templateSettings.pile_up_gap;
+	fChannelPsdParameter.trgho = templateSettings.trigger_holdoff;
 	for(int ch = 0; ch < nofChannels; ++ch) {
-		fChannelParameter.thr[ch]   = templateSettings.threshold;
-		fChannelParameter.nsbl[ch]  = templateSettings.baseline_samples;
-		fChannelParameter.lgate[ch] = templateSettings.long_gate;
-		fChannelParameter.sgate[ch] = templateSettings.short_gate;
-		fChannelParameter.pgate[ch] = templateSettings.pre_gate;
-		fChannelParameter.selft[ch] = templateSettings.self_trigger;
-		fChannelParameter.trgc[ch]  = static_cast<CAEN_DGTZ_DPP_TriggerConfig_t>(templateSettings.trigger_configuration);
-		fChannelParameter.tvaw[ch]  = templateSettings.trigger_validation_window;
-		fChannelParameter.csens[ch] = templateSettings.charge_sensitivity;
+		fChannelPsdParameter.thr[ch]   = templateSettings.threshold;
+		fChannelPsdParameter.nsbl[ch]  = templateSettings.baseline_samples;
+		fChannelPsdParameter.lgate[ch] = templateSettings.long_gate;
+		fChannelPsdParameter.sgate[ch] = templateSettings.short_gate;
+		fChannelPsdParameter.pgate[ch] = templateSettings.pre_gate;
+		fChannelPsdParameter.selft[ch] = templateSettings.self_trigger;
+		fChannelPsdParameter.trgc[ch]  = static_cast<CAEN_DGTZ_DPP_TriggerConfig_t>(1); //deprecated, must be 1
+		fChannelPsdParameter.tvaw[ch]  = templateSettings.trigger_validation_window;
+		fChannelPsdParameter.csens[ch] = templateSettings.charge_sensitivity;
+
+		fChannelPhaParameter.thr[ch]        = templateSettings.threshold;
+		fChannelPhaParameter.trgho[ch]      = templateSettings.trigger_holdoff;
+		fChannelPhaParameter.nsbl[ch]       = templateSettings.baseline_samples;
+		fChannelPhaParameter.trgwin[ch]     = templateSettings.trigger_validation_window;
+		fChannelPhaParameter.M[ch]          = templateSettings.trap_decay_time;
+		fChannelPhaParameter.m[ch]          = templateSettings.trap_flat_top;
+		fChannelPhaParameter.k[ch]          = templateSettings.trap_rise_time;
+		fChannelPhaParameter.ftd[ch]        = templateSettings.peaking_time;
+		fChannelPhaParameter.a[ch]          = templateSettings.smoothing_factor;
+		fChannelPhaParameter.b[ch]          = templateSettings.input_rise_time;
+		fChannelPhaParameter.nspk[ch]       = templateSettings.peak_samples;
+		fChannelPhaParameter.pkho[ch]       = templateSettings.peak_holdoff;
+		fChannelPhaParameter.blho[ch]       = templateSettings.baseline_holdoff;
+		fChannelPhaParameter.twwdt[ch]      = templateSettings.rise_time_validation_window;
+		fChannelPhaParameter.dgain[ch]      = templateSettings.digital_gain;
+		fChannelPhaParameter.enf[ch]        = templateSettings.energy_normalization;
+		fChannelPhaParameter.decimation[ch] = templateSettings.decimation;
 	}
 }
 
@@ -322,22 +374,40 @@ BoardSettings::BoardSettings(const int& boardNumber, const int& nofChannels, TEn
 	fEventAggregation = settings->GetValue(Form("Board.%d.EventAggregate", boardNumber), 0);
 
 	fChannelSettings.resize(nofChannels);
-	fChannelParameter.purh   = static_cast<CAEN_DGTZ_DPP_PUR_t>(settings->GetValue(Form("Board.%d.PileUpRejection", boardNumber), CAEN_DGTZ_DPP_PSD_PUR_DetectOnly));//0
-	fChannelParameter.purgap = settings->GetValue(Form("Board.%d.PurityGap", boardNumber), 100);
-	fChannelParameter.blthr  = settings->GetValue(Form("Board.%d.BaseLine.Threshold", boardNumber), 3);
-	fChannelParameter.bltmo  = settings->GetValue(Form("Board.%d.BaseLine.Timeout", boardNumber), 100);
-	fChannelParameter.trgho  = settings->GetValue(Form("Board.%d.TriggerHoldOff", boardNumber), 8);
+	fChannelPsdParameter.purh   = static_cast<CAEN_DGTZ_DPP_PUR_t>(settings->GetValue(Form("Board.%d.PileUpRejection", boardNumber), CAEN_DGTZ_DPP_PSD_PUR_DetectOnly));//0
+	fChannelPsdParameter.purgap = settings->GetValue(Form("Board.%d.PurityGap", boardNumber), 100);
+	fChannelPsdParameter.blthr  = settings->GetValue(Form("Board.%d.BaseLine.Threshold", boardNumber), 3);
+	fChannelPsdParameter.bltmo  = settings->GetValue(Form("Board.%d.BaseLine.Timeout", boardNumber), 100);
+	fChannelPsdParameter.trgho  = settings->GetValue(Form("Board.%d.TriggerHoldOff", boardNumber), 8);
 	for(int ch = 0; ch < nofChannels; ++ch) {
 		fChannelSettings[ch] = ChannelSettings(boardNumber, ch, settings);
-		fChannelParameter.thr[ch]   = settings->GetValue(Form("Board.%d.Channel.%d.Threshold", boardNumber, ch), 50);
-		fChannelParameter.nsbl[ch]  = settings->GetValue(Form("Board.%d.Channel.%d.BaselineSamples", boardNumber, ch), 4);
-		fChannelParameter.lgate[ch] = settings->GetValue(Form("Board.%d.Channel.%d.LongGate", boardNumber, ch), 32);
-		fChannelParameter.sgate[ch] = settings->GetValue(Form("Board.%d.Channel.%d.ShortGate", boardNumber, ch), 24);
-		fChannelParameter.pgate[ch] = settings->GetValue(Form("Board.%d.Channel.%d.PreGate", boardNumber, ch), 8);
-		fChannelParameter.selft[ch] = settings->GetValue(Form("Board.%d.Channel.%d.SelfTrigger", boardNumber, ch), 1);
-		fChannelParameter.trgc[ch]  = static_cast<CAEN_DGTZ_DPP_TriggerConfig_t>(settings->GetValue(Form("Board.%d.Channel.%d.TriggerConfiguration", boardNumber, ch), CAEN_DGTZ_DPP_TriggerConfig_Threshold));//1
-		fChannelParameter.tvaw[ch]  = settings->GetValue(Form("Board.%d.Channel.%d.TriggerValidationAcquisitionWindow", boardNumber, ch), 50);
-		fChannelParameter.csens[ch] = settings->GetValue(Form("Board.%d.Channel.%d.ChargeSensitivity", boardNumber, ch), 0);
+		fChannelPsdParameter.thr[ch]   = settings->GetValue(Form("Board.%d.Channel.%d.Threshold", boardNumber, ch), 50);
+		fChannelPsdParameter.nsbl[ch]  = settings->GetValue(Form("Board.%d.Channel.%d.BaselineSamples", boardNumber, ch), 4);
+		fChannelPsdParameter.lgate[ch] = settings->GetValue(Form("Board.%d.Channel.%d.LongGate", boardNumber, ch), 32);
+		fChannelPsdParameter.sgate[ch] = settings->GetValue(Form("Board.%d.Channel.%d.ShortGate", boardNumber, ch), 24);
+		fChannelPsdParameter.pgate[ch] = settings->GetValue(Form("Board.%d.Channel.%d.PreGate", boardNumber, ch), 8);
+		fChannelPsdParameter.selft[ch] = settings->GetValue(Form("Board.%d.Channel.%d.SelfTrigger", boardNumber, ch), 1);
+		fChannelPsdParameter.trgc[ch]  = static_cast<CAEN_DGTZ_DPP_TriggerConfig_t>(1);//deprecated, must be 1
+		fChannelPsdParameter.tvaw[ch]  = settings->GetValue(Form("Board.%d.Channel.%d.TriggerValidationAcquisitionWindow", boardNumber, ch), 50);
+		fChannelPsdParameter.csens[ch] = settings->GetValue(Form("Board.%d.Channel.%d.ChargeSensitivity", boardNumber, ch), 0);
+
+		fChannelPhaParameter.thr[ch]        = settings->GetValue(Form("Board.%d.Channel.%d.Threshold", boardNumber, ch), 50);
+		fChannelPhaParameter.trgho[ch]      = settings->GetValue(Form("Board.%d.Channel.%d.TriggerHoldoff", boardNumber, ch), 8);
+		fChannelPhaParameter.nsbl[ch]       = settings->GetValue(Form("Board.%d.Channel.%d.BaselineSamples", boardNumber, ch), 4);
+		fChannelPhaParameter.trgwin[ch]     = settings->GetValue(Form("Board.%d.Channel.%d.TriggerValidationAcquisitionWindow", boardNumber, ch), 50);
+		fChannelPhaParameter.M[ch]          = settings->GetValue(Form("Board.%d.Channel.%d.TrapezoidDecayTime", boardNumber, ch), 50000);
+		fChannelPhaParameter.m[ch]          = settings->GetValue(Form("Board.%d.Channel.%d.TrapezoidFlatTop", boardNumber, ch), 1200);
+		fChannelPhaParameter.k[ch]          = settings->GetValue(Form("Board.%d.Channel.%d.TrapezoidRiseTime", boardNumber, ch), 6000);
+		fChannelPhaParameter.ftd[ch]        = settings->GetValue(Form("Board.%d.Channel.%d.PeakingTime", boardNumber, ch), 1000);
+		fChannelPhaParameter.a[ch]          = settings->GetValue(Form("Board.%d.Channel.%d.SmoothingFactor", boardNumber, ch), 0);
+		fChannelPhaParameter.b[ch]          = settings->GetValue(Form("Board.%d.Channel.%d.InputRiseTime", boardNumber, ch), 400);
+		fChannelPhaParameter.nspk[ch]       = settings->GetValue(Form("Board.%d.Channel.%d.PeakSamples", boardNumber, ch), 0);
+		fChannelPhaParameter.pkho[ch]       = settings->GetValue(Form("Board.%d.Channel.%d.PeakHoldoff", boardNumber, ch), 6000);
+		fChannelPhaParameter.blho[ch]       = settings->GetValue(Form("Board.%d.Channel.%d.BaselineHoldoff", boardNumber, ch), 6);
+		fChannelPhaParameter.twwdt[ch]      = settings->GetValue(Form("Board.%d.Channel.%d.RiseTimeValidationWindow", boardNumber, ch), 0);
+		fChannelPhaParameter.dgain[ch]      = settings->GetValue(Form("Board.%d.Channel.%d.DigitalGain", boardNumber, ch), 0);
+		fChannelPhaParameter.enf[ch]        = settings->GetValue(Form("Board.%d.Channel.%d.EnergyNormalization", boardNumber, ch), 1.0);
+		fChannelPhaParameter.decimation[ch] = settings->GetValue(Form("Board.%d.Channel.%d.Decimation", boardNumber, ch), 0);
 	}
 }
 #endif
@@ -355,7 +425,6 @@ void BoardSettings::ReadCustomSettings(const HNDLE& hDb, const HNDLE& hKey)
 		if(strcmp(key.name, "Link Type") == 0 && key.num_values == 1) {
 			size = sizeof(fLinkType);
 			db_get_data(hDb, hSubKey, &fLinkType, &size, TID_WORD);
-			//fLinkType = static_cast<CAEN_DGTZ_ConnectionType>(*reinterpret_cast<WORD*>(key.data));
 		} else if(strcmp(key.name, "Board Type") == 0 && key.num_values == 1) {
 			size = sizeof(fBoardType);
 			db_get_data(hDb, hSubKey, &fBoardType, &size, TID_WORD);
@@ -371,41 +440,27 @@ void BoardSettings::ReadCustomSettings(const HNDLE& hDb, const HNDLE& hKey)
 		} else if(strcmp(key.name, "Acquisition Mode") == 0 && key.num_values == 1) {
 			size = sizeof(fAcquisitionMode);
 			db_get_data(hDb, hSubKey, &fAcquisitionMode, &size, TID_WORD);
-			//fAcquisitionMode = static_cast<CAEN_DGTZ_DPP_AcqMode_t>(*reinterpret_cast<WORD*>(key.data));
 		} else if(strcmp(key.name, "IO Level") == 0 && key.num_values == 1) {
 			size = sizeof(fIOLevel);
 			db_get_data(hDb, hSubKey, &fIOLevel, &size, TID_WORD);
-			//fIOLevel = static_cast<CAEN_DGTZ_IOLevel_t>(*reinterpret_cast<WORD*>(key.data));
 		} else if(strcmp(key.name, "Trigger Mode") == 0 && key.num_values == 1) {
 			size = sizeof(fTriggerMode);
 			db_get_data(hDb, hSubKey, &fTriggerMode, &size, TID_WORD);
-			//fTriggerMode = static_cast<CAEN_DGTZ_TriggerMode_t>(*reinterpret_cast<BOOL*>(key.data));
 		} else if(strcmp(key.name, "Channel Mask") == 0 && key.num_values == 1) {
 			size = sizeof(fChannelMask);
 			db_get_data(hDb, hSubKey, &fChannelMask, &size, TID_WORD);
 		} else if(strcmp(key.name, "RunSync mode") == 0 && key.num_values == 1) {
 			size = sizeof(fRunSync);
 			db_get_data(hDb, hSubKey, &fRunSync, &size, TID_WORD);
-			//fRunSync = static_cast<CAEN_DGTZ_RunSyncMode_t>(*reinterpret_cast<WORD*>(key.data));
 		} else if(strcmp(key.name, "Event aggregation") == 0 && key.num_values == 1) {
 			size = sizeof(fEventAggregation);
 			db_get_data(hDb, hSubKey, &fEventAggregation, &size, TID_WORD);
 		} else if(strcmp(key.name, "Pile up rejection mode") == 0 && key.num_values == 1) {
-			size = sizeof(fChannelParameter.purh);
-			db_get_data(hDb, hSubKey, &fChannelParameter.purh, &size, TID_WORD);
-			//fChannelParameter.purh = static_cast<CAEN_DGTZ_DPP_PUR_t>(*reinterpret_cast<WORD*>(key.data));
+			size = sizeof(fChannelPsdParameter.purh);
+			db_get_data(hDb, hSubKey, &fChannelPsdParameter.purh, &size, TID_WORD);
 		} else if(strcmp(key.name, "Pile up gap") == 0 && key.num_values == 1) {
-			size = sizeof(fChannelParameter.purgap);
-			db_get_data(hDb, hSubKey, &fChannelParameter.purgap, &size, TID_WORD);
-		} else if(strcmp(key.name, "Baseline threshold") == 0 && key.num_values == 1) {
-			size = sizeof(fChannelParameter.blthr);
-			db_get_data(hDb, hSubKey, &fChannelParameter.blthr, &size, TID_WORD);
-		} else if(strcmp(key.name, "Baseline timeout") == 0 && key.num_values == 1) {
-			size = sizeof(fChannelParameter.bltmo);
-			db_get_data(hDb, hSubKey, &fChannelParameter.bltmo, &size, TID_WORD);
-		} else if(strcmp(key.name, "Trigger holdoff") == 0 && key.num_values == 1) {
-			size = sizeof(fChannelParameter.trgho);
-			db_get_data(hDb, hSubKey, &fChannelParameter.trgho, &size, TID_WORD);
+			size = sizeof(fChannelPsdParameter.purgap);
+			db_get_data(hDb, hSubKey, &fChannelPsdParameter.purgap, &size, TID_WORD);
 		} else if(strncmp(key.name, "Channel ", 8) != 0) {
 			std::cout<<"unrecognized custom entry "<<key.name<<std::endl;
 		}
@@ -424,33 +479,84 @@ void BoardSettings::ReadCustomChannelSettings(const int& channel, const HNDLE& h
 		if(!hSubKey) break; // end of list reached
 		db_get_key(hDb, hSubKey, &key);
 		if(strcmp(key.name, "Threshold") == 0 && key.num_values == 1) {
-			size = sizeof(fChannelParameter.thr[channel]);
-			db_get_data(hDb, hSubKey, &fChannelParameter.thr[channel], &size, TID_WORD);
+			size = sizeof(fChannelPsdParameter.thr[channel]);
+			db_get_data(hDb, hSubKey, &fChannelPsdParameter.thr[channel], &size, TID_WORD);
 		} else if(strcmp(key.name, "Baseline samples") == 0 && key.num_values == 1) {
-			size = sizeof(fChannelParameter.nsbl[channel]);
-			db_get_data(hDb, hSubKey, &fChannelParameter.nsbl[channel], &size, TID_WORD);
+			size = sizeof(fChannelPsdParameter.nsbl[channel]);
+			db_get_data(hDb, hSubKey, &fChannelPsdParameter.nsbl[channel], &size, TID_WORD);
 		} else if(strcmp(key.name, "Long gate") == 0 && key.num_values == 1) {
-			size = sizeof(fChannelParameter.lgate[channel]);
-			db_get_data(hDb, hSubKey, &fChannelParameter.lgate[channel], &size, TID_WORD);
+			size = sizeof(fChannelPsdParameter.lgate[channel]);
+			db_get_data(hDb, hSubKey, &fChannelPsdParameter.lgate[channel], &size, TID_WORD);
 		} else if(strcmp(key.name, "Short gate") == 0 && key.num_values == 1) {
-			size = sizeof(fChannelParameter.sgate[channel]);
-			db_get_data(hDb, hSubKey, &fChannelParameter.sgate[channel], &size, TID_WORD);
+			size = sizeof(fChannelPsdParameter.sgate[channel]);
+			db_get_data(hDb, hSubKey, &fChannelPsdParameter.sgate[channel], &size, TID_WORD);
 		} else if(strcmp(key.name, "Pre gate") == 0 && key.num_values == 1) {
-			size = sizeof(fChannelParameter.pgate[channel]);
-			db_get_data(hDb, hSubKey, &fChannelParameter.pgate[channel], &size, TID_WORD);
+			size = sizeof(fChannelPsdParameter.pgate[channel]);
+			db_get_data(hDb, hSubKey, &fChannelPsdParameter.pgate[channel], &size, TID_WORD);
 		} else if(strcmp(key.name, "Self trigger") == 0 && key.num_values == 1) {
-			size = sizeof(fChannelParameter.selft[channel]);
-			db_get_data(hDb, hSubKey, &fChannelParameter.selft[channel], &size, TID_WORD);
-		} else if(strcmp(key.name, "Trigger configuration") == 0 && key.num_values == 1) {
-			size = sizeof(fChannelParameter.trgc[channel]);
-			db_get_data(hDb, hSubKey, &fChannelParameter.trgc[channel], &size, TID_WORD);
-			//fChannelParameter.trgc[channel] = static_cast<CAEN_DGTZ_DPP_TriggerConfig_t>(*reinterpret_cast<WORD*>(key.data));
+			size = sizeof(fChannelPsdParameter.selft[channel]);
+			db_get_data(hDb, hSubKey, &fChannelPsdParameter.selft[channel], &size, TID_WORD);
 		} else if(strcmp(key.name, "Trigger validation window") == 0 && key.num_values == 1) {
-			size = sizeof(fChannelParameter.tvaw[channel]);
-			db_get_data(hDb, hSubKey, &fChannelParameter.tvaw[channel], &size, TID_WORD);
+			size = sizeof(fChannelPsdParameter.tvaw[channel]);
+			db_get_data(hDb, hSubKey, &fChannelPsdParameter.tvaw[channel], &size, TID_WORD);
 		} else if(strcmp(key.name, "Charge sensitivity") == 0 && key.num_values == 1) {
-			size = sizeof(fChannelParameter.csens[channel]);
-			db_get_data(hDb, hSubKey, &fChannelParameter.csens[channel], &size, TID_WORD);
+			size = sizeof(fChannelPsdParameter.csens[channel]);
+			db_get_data(hDb, hSubKey, &fChannelPsdParameter.csens[channel], &size, TID_WORD);
+		} else if(strcmp(key.name, "Trigger holdoff") == 0 && key.num_values == 1) {
+			size = sizeof(fChannelPsdParameter.trgho);
+			db_get_data(hDb, hSubKey, &fChannelPsdParameter.trgho, &size, TID_WORD);
+		// PHA channel parameters
+		} else if(strcmp(key.name, "Threshold") == 0 && key.num_values == 1) {
+			size = sizeof(fChannelPhaParameter.thr[channel]);
+			db_get_data(hDb, hSubKey, &fChannelPhaParameter.thr[channel], &size, TID_WORD);
+		} else if(strcmp(key.name, "Baseline samples") == 0 && key.num_values == 1) {
+			size = sizeof(fChannelPhaParameter.nsbl[channel]);
+			db_get_data(hDb, hSubKey, &fChannelPhaParameter.nsbl[channel], &size, TID_WORD);
+		} else if(strcmp(key.name, "Trigger holdoff") == 0 && key.num_values == 1) {
+			size = sizeof(fChannelPhaParameter.trgho[channel]);
+			db_get_data(hDb, hSubKey, &fChannelPhaParameter.trgho[channel], &size, TID_WORD);
+		} else if(strcmp(key.name, "Trigger validation window") == 0 && key.num_values == 1) {
+			size = sizeof(fChannelPhaParameter.trgwin[channel]);
+			db_get_data(hDb, hSubKey, &fChannelPhaParameter.trgwin[channel], &size, TID_WORD);
+		} else if(strcmp(key.name, "Trapezoid decay time") == 0 && key.num_values == 1) {
+			size = sizeof(fChannelPhaParameter.M[channel]);
+			db_get_data(hDb, hSubKey, &fChannelPhaParameter.M[channel], &size, TID_WORD);
+		} else if(strcmp(key.name, "Trapezoid flat top") == 0 && key.num_values == 1) {
+			size = sizeof(fChannelPhaParameter.m[channel]);
+			db_get_data(hDb, hSubKey, &fChannelPhaParameter.m[channel], &size, TID_WORD);
+		} else if(strcmp(key.name, "Trapezoid rise time") == 0 && key.num_values == 1) {
+			size = sizeof(fChannelPhaParameter.k[channel]);
+			db_get_data(hDb, hSubKey, &fChannelPhaParameter.k[channel], &size, TID_WORD);
+		} else if(strcmp(key.name, "Peaking time") == 0 && key.num_values == 1) {
+			size = sizeof(fChannelPhaParameter.ftd[channel]);
+			db_get_data(hDb, hSubKey, &fChannelPhaParameter.ftd[channel], &size, TID_WORD);
+		} else if(strcmp(key.name, "Smoothing factor") == 0 && key.num_values == 1) {
+			size = sizeof(fChannelPhaParameter.a[channel]);
+			db_get_data(hDb, hSubKey, &fChannelPhaParameter.a[channel], &size, TID_WORD);
+		} else if(strcmp(key.name, "Input rise time") == 0 && key.num_values == 1) {
+			size = sizeof(fChannelPhaParameter.b[channel]);
+			db_get_data(hDb, hSubKey, &fChannelPhaParameter.b[channel], &size, TID_WORD);
+		} else if(strcmp(key.name, "Peak samples") == 0 && key.num_values == 1) {
+			size = sizeof(fChannelPhaParameter.nspk[channel]);
+			db_get_data(hDb, hSubKey, &fChannelPhaParameter.nspk[channel], &size, TID_WORD);
+		} else if(strcmp(key.name, "Peak holdoff") == 0 && key.num_values == 1) {
+			size = sizeof(fChannelPhaParameter.pkho[channel]);
+			db_get_data(hDb, hSubKey, &fChannelPhaParameter.pkho[channel], &size, TID_WORD);
+		} else if(strcmp(key.name, "Baseline holdoff") == 0 && key.num_values == 1) {
+			size = sizeof(fChannelPhaParameter.blho[channel]);
+			db_get_data(hDb, hSubKey, &fChannelPhaParameter.blho[channel], &size, TID_WORD);
+		} else if(strcmp(key.name, "Rise time validation window") == 0 && key.num_values == 1) {
+			size = sizeof(fChannelPhaParameter.twwdt[channel]);
+			db_get_data(hDb, hSubKey, &fChannelPhaParameter.twwdt[channel], &size, TID_WORD);
+		} else if(strcmp(key.name, "Digital gain") == 0 && key.num_values == 1) {
+			size = sizeof(fChannelPhaParameter.dgain[channel]);
+			db_get_data(hDb, hSubKey, &fChannelPhaParameter.dgain[channel], &size, TID_WORD);
+		} else if(strcmp(key.name, "Energy normalization") == 0 && key.num_values == 1) {
+			size = sizeof(fChannelPhaParameter.enf[channel]);
+			db_get_data(hDb, hSubKey, &fChannelPhaParameter.enf[channel], &size, TID_WORD);
+		} else if(strcmp(key.name, "Decimation") == 0 && key.num_values == 1) {
+			size = sizeof(fChannelPhaParameter.decimation[channel]);
+			db_get_data(hDb, hSubKey, &fChannelPhaParameter.decimation[channel], &size, TID_WORD);
 		} else {
 			// we keep both channel and channelparameter (which are "per board") settings
 			// in the "Channel x" directory, so there might be unrecognized entries
@@ -589,9 +695,9 @@ void BoardSettings::Print(const BoardSettings& templateSettings)
 		}
 	}
 
-	if(fChannelParameter.purh != templateSettings.ChannelParameter()->purh) {
-		std::cout<<"   pile-up rejection mode "<<fChannelParameter.purh<<" = ";
-		switch(fChannelParameter.purh) {
+	if(fChannelPsdParameter.purh != templateSettings.ChannelPsdParameter()->purh) {
+		std::cout<<"   pile-up rejection mode "<<fChannelPsdParameter.purh<<" = ";
+		switch(fChannelPsdParameter.purh) {
 			case CAEN_DGTZ_DPP_PSD_PUR_DetectOnly:
 				std::cout<<"detection only"<<std::endl;
 				break;
@@ -603,62 +709,94 @@ void BoardSettings::Print(const BoardSettings& templateSettings)
 				break;
 		}
 	}
-	if(fChannelParameter.purgap != templateSettings.ChannelParameter()->purgap) {
-		std::cout<<"   pile-up gap "<<fChannelParameter.purgap<<std::endl;
+	if(fChannelPsdParameter.purgap != templateSettings.ChannelPsdParameter()->purgap) {
+		std::cout<<"   pile-up gap "<<fChannelPsdParameter.purgap<<std::endl;
 	}
-	if(fChannelParameter.blthr != templateSettings.ChannelParameter()->blthr) {
-		std::cout<<"   baseline threshold "<<fChannelParameter.blthr<<std::endl;
-	}
-	if(fChannelParameter.bltmo != templateSettings.ChannelParameter()->bltmo) {
-		std::cout<<"   baseline timeout "<<fChannelParameter.bltmo<<std::endl;
-	}
-	if(fChannelParameter.trgho != templateSettings.ChannelParameter()->trgho) {
-		std::cout<<"   trigger holdoff "<<fChannelParameter.trgho<<std::endl;
+	if(fChannelPsdParameter.trgho != templateSettings.ChannelPsdParameter()->trgho) {
+		std::cout<<"   trigger holdoff "<<fChannelPsdParameter.trgho<<std::endl;
 	}
 	for(int ch = 0; ch < static_cast<int>(fChannelSettings.size()); ++ch) {
 		if(fChannelSettings[ch] == templateSettings.ChannelSettingsVector().at(0) &&
-			fChannelParameter == *(templateSettings.ChannelParameter())) {
+			fChannelPsdParameter == *(templateSettings.ChannelPsdParameter())) {
 			continue;
 		}
 		std::cout<<"   Channel #"<<ch<<" custom settings:"<<std::endl;
 		fChannelSettings[ch].Print(templateSettings.ChannelSettingsVector().at(0));
-		if(fChannelParameter.thr[ch] != templateSettings.ChannelParameter()->thr[0]) {
-			std::cout<<"      threshold "<<fChannelParameter.thr[ch]<<std::endl;
+		if(fChannelPsdParameter.thr[ch] != templateSettings.ChannelPsdParameter()->thr[0]) {
+			std::cout<<"      threshold "<<fChannelPsdParameter.thr[ch]<<std::endl;
 		}
-		if(fChannelParameter.nsbl[ch] != templateSettings.ChannelParameter()->nsbl[0]) {
-			std::cout<<"      baseline samples "<<fChannelParameter.nsbl[ch]<<std::endl;
+		if(fChannelPsdParameter.nsbl[ch] != templateSettings.ChannelPsdParameter()->nsbl[0]) {
+			std::cout<<"      baseline samples "<<fChannelPsdParameter.nsbl[ch]<<std::endl;
 		}
-		if(fChannelParameter.lgate[ch] != templateSettings.ChannelParameter()->lgate[0]) {
-			std::cout<<"      long gate "<<fChannelParameter.lgate[ch]<<std::endl;
+		if(fChannelPsdParameter.lgate[ch] != templateSettings.ChannelPsdParameter()->lgate[0]) {
+			std::cout<<"      long gate "<<fChannelPsdParameter.lgate[ch]<<std::endl;
 		}
-		if(fChannelParameter.sgate[ch] != templateSettings.ChannelParameter()->sgate[0]) {
-			std::cout<<"      short gate "<<fChannelParameter.sgate[ch]<<std::endl;
+		if(fChannelPsdParameter.sgate[ch] != templateSettings.ChannelPsdParameter()->sgate[0]) {
+			std::cout<<"      short gate "<<fChannelPsdParameter.sgate[ch]<<std::endl;
 		}
-		if(fChannelParameter.pgate[ch] != templateSettings.ChannelParameter()->pgate[0]) {
-			std::cout<<"      pre-gate "<<fChannelParameter.pgate[ch]<<std::endl;
+		if(fChannelPsdParameter.pgate[ch] != templateSettings.ChannelPsdParameter()->pgate[0]) {
+			std::cout<<"      pre-gate "<<fChannelPsdParameter.pgate[ch]<<std::endl;
 		}
-		if(fChannelParameter.selft[ch] != templateSettings.ChannelParameter()->selft[0]) {
-			std::cout<<"      self trigger "<<fChannelParameter.selft[ch]<<std::endl;
+		if(fChannelPsdParameter.selft[ch] != templateSettings.ChannelPsdParameter()->selft[0]) {
+			std::cout<<"      self trigger "<<fChannelPsdParameter.selft[ch]<<std::endl;
 		}
-		if(fChannelParameter.trgc[ch] != templateSettings.ChannelParameter()->trgc[0]) {
-			std::cout<<"      trigger conf. "<<fChannelParameter.trgc[ch]<<" = ";
-			switch(fChannelParameter.trgc[ch]) {
-				case CAEN_DGTZ_DPP_TriggerConfig_Peak:
-					std::cout<<" peak"<<std::endl;
-					break;
-				case CAEN_DGTZ_DPP_TriggerConfig_Threshold:
-					std::cout<<" threshold"<<std::endl;
-					break;
-				default:
-					std::cout<<"unknown"<<std::endl;
-					break;
-			}
+		if(fChannelPsdParameter.tvaw[ch] != templateSettings.ChannelPsdParameter()->tvaw[0]) {
+			std::cout<<"      trigger val. window "<<fChannelPsdParameter.tvaw[ch]<<std::endl;
 		}
-		if(fChannelParameter.tvaw[ch] != templateSettings.ChannelParameter()->tvaw[0]) {
-			std::cout<<"      trigger val. window "<<fChannelParameter.tvaw[ch]<<std::endl;
+		if(fChannelPsdParameter.csens[ch] != templateSettings.ChannelPsdParameter()->csens[0]) {
+			std::cout<<"      charge sensitivity "<<fChannelPsdParameter.csens[ch]<<std::endl;
 		}
-		if(fChannelParameter.csens[ch] != templateSettings.ChannelParameter()->csens[0]) {
-			std::cout<<"      charge sensitivity "<<fChannelParameter.csens[ch]<<std::endl;
+
+		if(fChannelPhaParameter.thr[ch]        != templateSettings.ChannelPhaParameter()->thr[0]) {
+			std::cout<<"      threshold "<<fChannelPhaParameter.thr[ch]<<std::endl;
+		}
+		if(fChannelPhaParameter.trgho[ch] != templateSettings.ChannelPhaParameter()->trgho[ch]) {
+			std::cout<<"   trigger holdoff "<<fChannelPhaParameter.trgho[ch]<<std::endl;
+		}
+		if(fChannelPhaParameter.nsbl[ch]       != templateSettings.ChannelPhaParameter()->nsbl[0]) {
+			std::cout<<"      baseline samples "<<fChannelPhaParameter.nsbl[ch]<<std::endl;
+		}
+		if(fChannelPhaParameter.trgwin[ch]     != templateSettings.ChannelPhaParameter()->trgwin[0]) {
+			std::cout<<"      trigger window "<<fChannelPhaParameter.trgwin[ch]<<std::endl;
+		}
+		if(fChannelPhaParameter.M[ch]          != templateSettings.ChannelPhaParameter()->M[0]) {
+			std::cout<<"      trapezoid decay time "<<fChannelPhaParameter.M[ch]<<std::endl;
+		}
+		if(fChannelPhaParameter.m[ch]          != templateSettings.ChannelPhaParameter()->m[0]) {
+			std::cout<<"      trapezoid flat top "<<fChannelPhaParameter.m[ch]<<std::endl;
+		}
+		if(fChannelPhaParameter.k[ch]          != templateSettings.ChannelPhaParameter()->k[0]) {
+			std::cout<<"      trapezoid rise time "<<fChannelPhaParameter.k[ch]<<std::endl;
+		}
+		if(fChannelPhaParameter.ftd[ch]        != templateSettings.ChannelPhaParameter()->ftd[0]) {
+			std::cout<<"      peaking time "<<fChannelPhaParameter.ftd[ch]<<std::endl;
+		}
+		if(fChannelPhaParameter.a[ch]          != templateSettings.ChannelPhaParameter()->a[0]) {
+			std::cout<<"      smoothing factor "<<fChannelPhaParameter.a[ch]<<std::endl;
+		}
+		if(fChannelPhaParameter.b[ch]          != templateSettings.ChannelPhaParameter()->b[0]) {
+			std::cout<<"      input rise time "<<fChannelPhaParameter.b[ch]<<std::endl;
+		}
+		if(fChannelPhaParameter.nspk[ch]       != templateSettings.ChannelPhaParameter()->nspk[0]) {
+			std::cout<<"      peak samples "<<fChannelPhaParameter.nspk[ch]<<std::endl;
+		}
+		if(fChannelPhaParameter.pkho[ch]       != templateSettings.ChannelPhaParameter()->pkho[0]) {
+			std::cout<<"      peak holdoff "<<fChannelPhaParameter.pkho[ch]<<std::endl;
+		}
+		if(fChannelPhaParameter.blho[ch]       != templateSettings.ChannelPhaParameter()->blho[0]) {
+			std::cout<<"      baseline holdoff "<<fChannelPhaParameter.blho[ch]<<std::endl;
+		}
+		if(fChannelPhaParameter.twwdt[ch]      != templateSettings.ChannelPhaParameter()->twwdt[0]) {
+			std::cout<<"      trigger validation window "<<fChannelPhaParameter.twwdt[ch]<<std::endl;
+		}
+		if(fChannelPhaParameter.dgain[ch]      != templateSettings.ChannelPhaParameter()->dgain[0]) {
+			std::cout<<"      digitakl gain "<<fChannelPhaParameter.dgain[ch]<<std::endl;
+		}
+		if(fChannelPhaParameter.enf[ch]        != templateSettings.ChannelPhaParameter()->enf[0]) {
+			std::cout<<"      energy normalization "<<fChannelPhaParameter.enf[ch]<<std::endl;
+		}
+		if(fChannelPhaParameter.decimation[ch] != templateSettings.ChannelPhaParameter()->decimation[0]) {
+			std::cout<<"      decimation "<<fChannelPhaParameter.decimation[ch]<<std::endl;
 		}
 	}
 }
@@ -770,8 +908,8 @@ void BoardSettings::Print()
 			break;
 	}
 
-	std::cout<<"   pile-up rejection mode "<<fChannelParameter.purh<<" = ";
-	switch(fChannelParameter.purh) {
+	std::cout<<"   pile-up rejection mode "<<fChannelPsdParameter.purh<<" = ";
+	switch(fChannelPsdParameter.purh) {
 		case CAEN_DGTZ_DPP_PSD_PUR_DetectOnly:
 			std::cout<<"detection only"<<std::endl;
 			break;
@@ -782,33 +920,37 @@ void BoardSettings::Print()
 			std::cout<<"unknown"<<std::endl;
 			break;
 	}
-	std::cout<<"   pile-up gap "<<fChannelParameter.purgap<<std::endl;
-	std::cout<<"   baseline threshold "<<fChannelParameter.blthr<<std::endl;
-	std::cout<<"   baseline timeout "<<fChannelParameter.bltmo<<std::endl;
-	std::cout<<"   trigger holdoff "<<fChannelParameter.trgho<<std::endl;
+	std::cout<<"   pile-up gap "<<fChannelPsdParameter.purgap<<std::endl;
+	std::cout<<"   trigger holdoff "<<fChannelPsdParameter.trgho<<std::endl;
 	for(int ch = 0; ch < static_cast<int>(fChannelSettings.size()); ++ch) {
 		std::cout<<"   Channel #"<<ch<<":"<<std::endl;
 		fChannelSettings[ch].Print();
-		std::cout<<"      threshold "<<fChannelParameter.thr[ch]<<std::endl;
-		std::cout<<"      baseline samples "<<fChannelParameter.nsbl[ch]<<std::endl;
-		std::cout<<"      long gate "<<fChannelParameter.lgate[ch]<<std::endl;
-		std::cout<<"      short gate "<<fChannelParameter.sgate[ch]<<std::endl;
-		std::cout<<"      pre-gate "<<fChannelParameter.pgate[ch]<<std::endl;
-		std::cout<<"      self trigger "<<fChannelParameter.selft[ch]<<std::endl;
-		std::cout<<"      trigger conf. "<<fChannelParameter.trgc[ch]<<" = ";
-		switch(fChannelParameter.trgc[ch]) {
-			case CAEN_DGTZ_DPP_TriggerConfig_Peak:
-				std::cout<<" peak"<<std::endl;
-				break;
-			case CAEN_DGTZ_DPP_TriggerConfig_Threshold:
-				std::cout<<" threshold"<<std::endl;
-				break;
-			default:
-				std::cout<<"unknown"<<std::endl;
-				break;
-		}
-		std::cout<<"      trigger val. window "<<fChannelParameter.tvaw[ch]<<std::endl;
-		std::cout<<"      charge sensitivity "<<fChannelParameter.csens[ch]<<std::endl;
+		std::cout<<"      threshold "<<fChannelPsdParameter.thr[ch]<<std::endl;
+		std::cout<<"      baseline samples "<<fChannelPsdParameter.nsbl[ch]<<std::endl;
+		std::cout<<"      long gate "<<fChannelPsdParameter.lgate[ch]<<std::endl;
+		std::cout<<"      short gate "<<fChannelPsdParameter.sgate[ch]<<std::endl;
+		std::cout<<"      pre-gate "<<fChannelPsdParameter.pgate[ch]<<std::endl;
+		std::cout<<"      self trigger "<<fChannelPsdParameter.selft[ch]<<std::endl;
+		std::cout<<"      trigger val. window "<<fChannelPsdParameter.tvaw[ch]<<std::endl;
+		std::cout<<"      charge sensitivity "<<fChannelPsdParameter.csens[ch]<<std::endl;
+
+		std::cout<<"      threshold "<<fChannelPhaParameter.thr[ch]<<std::endl;
+		std::cout<<"      baseline samples "<<fChannelPhaParameter.nsbl[ch]<<std::endl;
+		std::cout<<"      trigger holdoff "<<fChannelPhaParameter.trgho[ch]<<std::endl;
+		std::cout<<"      trigger window "<<fChannelPhaParameter.trgwin[ch]<<std::endl;
+		std::cout<<"      trapezoid decay time "<<fChannelPhaParameter.M[ch]<<std::endl;
+		std::cout<<"      trapezoid flat top "<<fChannelPhaParameter.m[ch]<<std::endl;
+		std::cout<<"      trapezoid rise time "<<fChannelPhaParameter.k[ch]<<std::endl;
+		std::cout<<"      peaking time "<<fChannelPhaParameter.ftd[ch]<<std::endl;
+		std::cout<<"      smoothing factor "<<fChannelPhaParameter.a[ch]<<std::endl;
+		std::cout<<"      input rise time "<<fChannelPhaParameter.b[ch]<<std::endl;
+		std::cout<<"      peak samples "<<fChannelPhaParameter.nspk[ch]<<std::endl;
+		std::cout<<"      peak holdoff "<<fChannelPhaParameter.pkho[ch]<<std::endl;
+		std::cout<<"      baseline holdoff "<<fChannelPhaParameter.blho[ch]<<std::endl;
+		std::cout<<"      trigger validation window "<<fChannelPhaParameter.twwdt[ch]<<std::endl;
+		std::cout<<"      digital gain "<<fChannelPhaParameter.dgain[ch]<<std::endl;
+		std::cout<<"      energy normalization "<<fChannelPhaParameter.enf[ch]<<std::endl;
+		std::cout<<"      decimation "<<fChannelPhaParameter.decimation[ch]<<std::endl;
 	}
 }
 
@@ -823,18 +965,19 @@ bool operator==(const BoardSettings& lh, const BoardSettings& rh)
 		}
 	}
 
-	return (lh.fLinkType         == rh.fLinkType &&
-			  lh.fBoardType        == rh.fBoardType &&
-			  lh.fVmeBaseAddress   == rh.fVmeBaseAddress &&
-			  lh.fPortNumber       == rh.fPortNumber &&
-			  lh.fDeviceNumber     == rh.fDeviceNumber &&
-			  lh.fAcquisitionMode  == rh.fAcquisitionMode &&
-			  lh.fIOLevel          == rh.fIOLevel &&
-			  lh.fChannelMask      == rh.fChannelMask &&
-			  lh.fRunSync          == rh.fRunSync &&
-			  lh.fEventAggregation == rh.fEventAggregation &&
-			  lh.fTriggerMode      == rh.fTriggerMode &&
-			  lh.fChannelParameter == rh.fChannelParameter);
+	return (lh.fLinkType            == rh.fLinkType &&
+			  lh.fBoardType           == rh.fBoardType &&
+			  lh.fVmeBaseAddress      == rh.fVmeBaseAddress &&
+			  lh.fPortNumber          == rh.fPortNumber &&
+			  lh.fDeviceNumber        == rh.fDeviceNumber &&
+			  lh.fAcquisitionMode     == rh.fAcquisitionMode &&
+			  lh.fIOLevel             == rh.fIOLevel &&
+			  lh.fChannelMask         == rh.fChannelMask &&
+			  lh.fRunSync             == rh.fRunSync &&
+			  lh.fEventAggregation    == rh.fEventAggregation &&
+			  lh.fTriggerMode         == rh.fTriggerMode &&
+			  lh.fChannelPsdParameter == rh.fChannelPsdParameter &&
+			  lh.fChannelPhaParameter == rh.fChannelPhaParameter);
 }
 
 bool operator!=(const BoardSettings& lh, const BoardSettings& rh)
@@ -844,6 +987,14 @@ bool operator!=(const BoardSettings& lh, const BoardSettings& rh)
 
 CaenSettings::CaenSettings(bool debug)
 {
+	fNumberOfBoards = 0;
+ 	fNumberOfChannels = 0;
+	fUseExternalClock = false;
+
+	fBufferSize = 0;
+
+	fRawOutput = false;
+
 	fDebug = debug;
 }
 
@@ -918,8 +1069,6 @@ bool CaenSettings::ReadOdb(HNDLE hDB)
 			<<"charge threshold "<<templateSettings.charge_threshold<<std::endl
 			<<"pile_up_rejection_mode "<<templateSettings.pile_up_rejection_mode<<std::endl
 			<<"pile_up_gap "<<templateSettings.pile_up_gap<<std::endl
-			<<"baseline_threshold "<<templateSettings.baseline_threshold<<std::endl
-			<<"baseline_timeout "<<templateSettings.baseline_timeout<<std::endl
 			<<"trigger_holdoff "<<templateSettings.trigger_holdoff<<std::endl
 			<<"threshold "<<templateSettings.threshold<<std::endl
 			<<"baseline_samples "<<templateSettings.baseline_samples<<std::endl
@@ -1038,21 +1187,20 @@ bool CaenSettings::WriteOdb()
 	//script<<"odbedit -c \"set \\\"/DAQ/params/VX1730/custom/Coincidence Window\\\" "<<fCoincWindow <<"\""<<std::endl;
 	//script<<"odbedit -c \"set \\\"/DAQ/params/VX1730/custom/Coincidence Latency\\\" "<<fCoincLatency <<"\""<<std::endl;
 
-	//script<<"odbedit -c \"set \\\"/DAQ/params/VX1730/custom/Pile up rejection mode\\\" "<<fChannelParameter.purh<<"\""<<std::endl;
-	//script<<"odbedit -c \"set \\\"/DAQ/params/VX1730/custom/Pile up gap\\\" "<<fChannelParameter.purgap<<"\""<<std::endl;
-	//script<<"odbedit -c \"set \\\"/DAQ/params/VX1730/custom/Baseline threshold\\\" "<<fChannelParameter.blthr<<"\""<<std::endl;
-	//script<<"odbedit -c \"set \\\"/DAQ/params/VX1730/custom/Baseline timeout\\\" "<<fChannelParameter.bltmo<<"\""<<std::endl;
-	//script<<"odbedit -c \"set \\\"/DAQ/params/VX1730/custom/Trigger holdoff\\\" "<<fChannelParameter.trgho<<"\""<<std::endl;
+	//script<<"odbedit -c \"set \\\"/DAQ/params/VX1730/custom/Pile up rejection mode\\\" "<<fChannelPsdParameter.purh<<"\""<<std::endl;
+	//script<<"odbedit -c \"set \\\"/DAQ/params/VX1730/custom/Pile up gap\\\" "<<fChannelPsdParameter.purgap<<"\""<<std::endl;
+	//script<<"odbedit -c \"set \\\"/DAQ/params/VX1730/custom/Baseline threshold\\\" "<<fChannelPsdParameter.blthr<<"\""<<std::endl;
+	//script<<"odbedit -c \"set \\\"/DAQ/params/VX1730/custom/Baseline timeout\\\" "<<fChannelPsdParameter.bltmo<<"\""<<std::endl;
+	//script<<"odbedit -c \"set \\\"/DAQ/params/VX1730/custom/Trigger holdoff\\\" "<<fChannelPsdParameter.trgho<<"\""<<std::endl;
 	//for(int ch = 0; ch < fNumberOfChannels; ++ch) {
-	//	script<<"odbedit -c \"set \\\"/DAQ/params/VX1730/custom/Threshold["<<ch<<"]\\\" "<<fChannelParameter.thr[ch]<<"\""<<std::endl;
-	//	script<<"odbedit -c \"set \\\"/DAQ/params/VX1730/custom/Baseline samples["<<ch<<"]\\\" "<<fChannelParameter.nsbl[ch]<<"\""<<std::endl;
-	//	script<<"odbedit -c \"set \\\"/DAQ/params/VX1730/custom/Long gate["<<ch<<"]\\\" "<<fChannelParameter.lgate[ch]<<"\""<<std::endl;
-	//	script<<"odbedit -c \"set \\\"/DAQ/params/VX1730/custom/Short gate["<<ch<<"]\\\" "<<fChannelParameter.sgate[ch]<<"\""<<std::endl;
-	//	script<<"odbedit -c \"set \\\"/DAQ/params/VX1730/custom/Pre gate["<<ch<<"]\\\" "<<fChannelParameter.pgate[ch]<<"\""<<std::endl;
-	//	script<<"odbedit -c \"set \\\"/DAQ/params/VX1730/custom/Self trigger["<<ch<<"]\\\" "<<fChannelParameter.selft[ch]<<"\""<<std::endl;
-	//	script<<"odbedit -c \"set \\\"/DAQ/params/VX1730/custom/Trigger configuration["<<ch<<"]\\\" "<<fChannelParameter.trgc[ch]<<"\""<<std::endl;
-	//	script<<"odbedit -c \"set \\\"/DAQ/params/VX1730/custom/Trigger validation window["<<ch<<"]\\\" "<<fChannelParameter.tvaw[ch]<<"\""<<std::endl;
-	//	script<<"odbedit -c \"set \\\"/DAQ/params/VX1730/custom/Charge sensitivity["<<ch<<"]\\\" "<<fChannelParameter.csens[ch]<<"\""<<std::endl;
+	//	script<<"odbedit -c \"set \\\"/DAQ/params/VX1730/custom/Threshold["<<ch<<"]\\\" "<<fChannelPsdParameter.thr[ch]<<"\""<<std::endl;
+	//	script<<"odbedit -c \"set \\\"/DAQ/params/VX1730/custom/Baseline samples["<<ch<<"]\\\" "<<fChannelPsdParameter.nsbl[ch]<<"\""<<std::endl;
+	//	script<<"odbedit -c \"set \\\"/DAQ/params/VX1730/custom/Long gate["<<ch<<"]\\\" "<<fChannelPsdParameter.lgate[ch]<<"\""<<std::endl;
+	//	script<<"odbedit -c \"set \\\"/DAQ/params/VX1730/custom/Short gate["<<ch<<"]\\\" "<<fChannelPsdParameter.sgate[ch]<<"\""<<std::endl;
+	//	script<<"odbedit -c \"set \\\"/DAQ/params/VX1730/custom/Pre gate["<<ch<<"]\\\" "<<fChannelPsdParameter.pgate[ch]<<"\""<<std::endl;
+	//	script<<"odbedit -c \"set \\\"/DAQ/params/VX1730/custom/Self trigger["<<ch<<"]\\\" "<<fChannelPsdParameter.selft[ch]<<"\""<<std::endl;
+	//	script<<"odbedit -c \"set \\\"/DAQ/params/VX1730/custom/Trigger validation window["<<ch<<"]\\\" "<<fChannelPsdParameter.tvaw[ch]<<"\""<<std::endl;
+	//	script<<"odbedit -c \"set \\\"/DAQ/params/VX1730/custom/Charge sensitivity["<<ch<<"]\\\" "<<fChannelPsdParameter.csens[ch]<<"\""<<std::endl;
 	//}
 	script<<std::endl;
 
@@ -1103,21 +1251,18 @@ bool CaenSettings::WriteOdb()
 	//settings.coinc_window = fCoincWindow;
 	//settings.coinc_latency = fCoincLatency;
 
-	//settings.pile_up_rejection_mode = fChannelParameter.purh;
-	//settings.pile_up_gap = fChannelParameter.purgap;
-	//settings.baseline_threshold = fChannelParameter.blthr;
-	//settings.baseline_timeout = fChannelParameter.bltmo;
-	//settings.trigger_holdoff = fChannelParameter.trgho;
+	//settings.pile_up_rejection_mode = fChannelPsdParameter.purh;
+	//settings.pile_up_gap = fChannelPsdParameter.purgap;
+	//settings.trigger_holdoff = fChannelPsdParameter.trgho;
 	//for(int ch = 0; ch < fNumberOfChannels; ++ch) {
-	//	settings.threshold[ch] = fChannelParameter.thr[ch];
-	//	settings.baseline_samples[ch] = fChannelParameter.nsbl[ch];
-	//	settings.long_gate[ch] = fChannelParameter.lgate[ch];
-	//	settings.short_gate[ch] = fChannelParameter.sgate[ch];
-	//	settings.pre_gate[ch] = fChannelParameter.pgate[ch];
-	//	settings.self_trigger[ch] = fChannelParameter.selft[ch];
-	//	settings.trigger_configuration[ch] = fChannelParameter.trgc[ch];
-	//	settings.trigger_validation_window[ch] = fChannelParameter.tvaw[ch];
-	//	settings.charge_sensitivity[ch] = fChannelParameter.csens[ch];
+	//	settings.threshold[ch] = fChannelPsdParameter.thr[ch];
+	//	settings.baseline_samples[ch] = fChannelPsdParameter.nsbl[ch];
+	//	settings.long_gate[ch] = fChannelPsdParameter.lgate[ch];
+	//	settings.short_gate[ch] = fChannelPsdParameter.sgate[ch];
+	//	settings.pre_gate[ch] = fChannelPsdParameter.pgate[ch];
+	//	settings.self_trigger[ch] = fChannelPsdParameter.selft[ch];
+	//	settings.trigger_validation_window[ch] = fChannelPsdParameter.tvaw[ch];
+	//	settings.charge_sensitivity[ch] = fChannelPsdParameter.csens[ch];
 	//}
 	settings.raw_output = fRawOutput;
 	std::cout<<"connecting to database ..."<<std::endl;
