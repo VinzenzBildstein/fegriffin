@@ -18,9 +18,9 @@
 #define STRING_LEN      256 // typical length for temporary strings
 #define MAX_EVT_SIZE 1000000 // was originally 500000
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+//#ifdef __cplusplus
+//extern "C" {
+//#endif
 
 char fename[STRING_LEN]="fecaen";
 
@@ -57,20 +57,20 @@ EQUIPMENT equipment[] = {
    {""}
 };
 ////////////////////////////////////////////////////////////////////////////
-#ifdef __cplusplus
-}
-#endif
+//#ifdef __cplusplus
+//}
+//#endif
 
 HNDLE hSet;
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-int interrupt_configure(INT cmd, INT source, PTYPE adr){ return SUCCESS; }
+//#ifdef __cplusplus
+//extern "C" {
+//#endif
 
 int pause_run(INT run_number, char *error){ return SUCCESS; }
 int resume_run(INT run_number, char *error){ return SUCCESS; }
+int interrupt_configure(INT cmd, INT source, PTYPE adr){ return SUCCESS; }
+
 int frontend_exit()
 { 
 	delete gDigitizer; 
@@ -108,15 +108,15 @@ int end_of_run(int run_number, char *error)
 
    return SUCCESS;
 }
-#ifdef __cplusplus
-}
-#endif
+//#ifdef __cplusplus
+//}
+//#endif
 
 /* test/count mode is used to determine poll timing */
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+//#ifdef __cplusplus
+//extern "C" {
+//#endif
 
 INT poll_event(INT source, INT count, BOOL test)
 {
@@ -156,7 +156,7 @@ int read_caen_event(char *pevent, int off)
 
    return bk_size(pevent);
 }
-#ifdef __cplusplus
-}
-#endif
+//#ifdef __cplusplus
+//}
+//#endif
 

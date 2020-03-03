@@ -92,13 +92,14 @@ ChannelSettings::ChannelSettings(const V1730_TEMPLATE& templateSettings)
 	fCfdParameters         = templateSettings.cfd_delay & 0xff;
 	fCfdParameters        |= (templateSettings.cfd_fraction & 0x3) << 8;
 	fCfdParameters        |= (templateSettings.cfd_interpolation_points & 0x3) << 10;
-	fEnableCoinc           = templateSettings.enable_coinc;
 	fEnableBaseline        = templateSettings.enable_baseline;
-	fCoincWindow           = templateSettings.coinc_window;
-	fCoincLatency          = templateSettings.coinc_latency;
 	fInputRange            = templateSettings.input_range;
 	fEnableZeroSuppression = templateSettings.enable_zs;
 	fChargeThreshold       = templateSettings.charge_threshold;
+	fTriggerWidth          = templateSettings.trigger_width;
+	fTriggerMode           = templateSettings.trigger_mode;
+	fTriggerMask           = templateSettings.trigger_mask;
+	fCoincidenceMode       = templateSettings.coincidence_mode;
 }
 
 #ifdef USE_TENV
@@ -112,13 +113,14 @@ ChannelSettings::ChannelSettings(const int& boardNumber, const int& channelNumbe
 	fCfdParameters         = (settings->GetValue(Form("Board.%d.Channel.%d.CfdDelay", boardNumber, channelNumber), 5) & 0xff);
 	fCfdParameters        |= (settings->GetValue(Form("Board.%d.Channel.%d.CfdFraction", boardNumber, channelNumber), 0) & 0x3) << 8;
 	fCfdParameters        |= (settings->GetValue(Form("Board.%d.Channel.%d.CfdInterpolationPoints", boardNumber, channelNumber), 0) & 0x3) << 10;
-	fEnableCoinc           = settings->GetValue(Form("Board.%d.Channel.%d.EnableCoinc", boardNumber, channelNumber), false);
 	fEnableBaseline        = settings->GetValue(Form("Board.%d.Channel.%d.EnableBaseline", boardNumber, channelNumber), false);
-	fCoincWindow           = settings->GetValue(Form("Board.%d.Channel.%d.CoincWindow", boardNumber, channelNumber), 5);
-	fCoincLatency          = settings->GetValue(Form("Board.%d.Channel.%d.CoincLatency", boardNumber, channelNumber), 2);
 	fInputRange            = settings->GetValue(Form("Board.%d.Channel.%d.InputRange", boardNumber, channelNumber), 2);
 	fEnableZeroSuppression = settings->GetValue(Form("Board.%d.Channel.%d.EnableZeroSuppression", boardNumber, channelNumber), 2);
 	fChargeThreshold       = settings->GetValue(Form("Board.%d.Channel.%d.ChargeThreshold", boardNumber, channelNumber), 2);
+	fTriggerWidth          = settings->GetValue(Form("Board.%d.Channel.%d.TriggerWidth", boardNumber, channelNumber), 0);
+	fTriggerMode           = settings->GetValue(Form("Board.%d.Channel.%d.TriggerMode", boardNumber, channelNumber), 0);
+	fTriggerMask           = settings->GetValue(Form("Board.%d.Channel.%d.TriggerMask", boardNumber, channelNumber), 0);
+	fCoincidenceMode       = settings->GetValue(Form("Board.%d.Channel.%d.CoincidenceMode", boardNumber, channelNumber), 0);
 }
 #endif
 
@@ -166,18 +168,9 @@ void ChannelSettings::ReadCustomSettings(const HNDLE& hDb, const HNDLE& hKey)
 			db_get_data(hDb, hSubKey, &tmp, &size, TID_WORD);
 			fCfdParameters &= ~0xc00;
 			fCfdParameters |= (tmp & 0x3) << 10;
-		} else if(strcmp(key.name, "Enable coincidence") == 0 && key.num_values == 1) {
-			size = sizeof(fEnableCoinc);
-			db_get_data(hDb, hSubKey, &fEnableCoinc, &size, TID_BOOL);
 		} else if(strcmp(key.name, "Enable baseline") == 0 && key.num_values == 1) {
 			size = sizeof(fEnableBaseline);
 			db_get_data(hDb, hSubKey, &fEnableBaseline, &size, TID_BOOL);
-		} else if(strcmp(key.name, "Coincidence window") == 0 && key.num_values == 1) {
-			size = sizeof(fCoincWindow);
-			db_get_data(hDb, hSubKey, &fCoincWindow, &size, TID_WORD);
-		} else if(strcmp(key.name, "Coincidence latency") == 0 && key.num_values == 1) {
-			size = sizeof(fCoincLatency);
-			db_get_data(hDb, hSubKey, &fCoincLatency, &size, TID_WORD);
 		} else if(strcmp(key.name, "Input range") == 0 && key.num_values == 1) {
 			size = sizeof(fInputRange);
 			db_get_data(hDb, hSubKey, &fInputRange, &size, TID_BOOL);
@@ -187,6 +180,18 @@ void ChannelSettings::ReadCustomSettings(const HNDLE& hDb, const HNDLE& hKey)
 		} else if(strcmp(key.name, "Charge threshold") == 0 && key.num_values == 1) {
 			size = sizeof(fChargeThreshold);
 			db_get_data(hDb, hSubKey, &fChargeThreshold, &size, TID_WORD);
+		} else if(strcmp(key.name, "Trigger width") == 0 && key.num_values == 1) {
+			size = sizeof(fTriggerWidth);
+			db_get_data(hDb, hSubKey, &fTriggerWidth, &size, TID_WORD);
+		} else if(strcmp(key.name, "Trigger mode") == 0 && key.num_values == 1) {
+			size = sizeof(fTriggerMode);
+			db_get_data(hDb, hSubKey, &fTriggerMode, &size, TID_WORD);
+		} else if(strcmp(key.name, "Trigger mask") == 0 && key.num_values == 1) {
+			size = sizeof(fTriggerMask);
+			db_get_data(hDb, hSubKey, &fTriggerMask, &size, TID_WORD);
+		} else if(strcmp(key.name, "Coincidence mode") == 0 && key.num_values == 1) {
+			size = sizeof(fCoincidenceMode);
+			db_get_data(hDb, hSubKey, &fCoincidenceMode, &size, TID_WORD);
 		} else {
 			// we keep both channel and channelparameter (which are "per board") settings
 			// in the "Channel x" directory, so there might be unrecognized entries
@@ -233,17 +238,8 @@ void ChannelSettings::Print(const ChannelSettings& templateSettings)
 	if(fCfdParameters != templateSettings.CfdParameters()) {
 		std::cout<<"      cfd parameters 0x"<<std::hex<<fCfdParameters<<std::dec<<std::endl;
 	}
-	if(fEnableCoinc != templateSettings.EnableCoinc()) {
-		std::cout<<"      coincidence "<<(fEnableCoinc?"enabled":"disabled")<<std::endl;
-	}
 	if(fEnableBaseline != templateSettings.EnableBaseline()) {
 		std::cout<<"      baseline "<<(fEnableBaseline?"enabled":"disabled")<<std::endl;
-	}
-	if(fCoincWindow != templateSettings.CoincWindow()) {
-		std::cout<<"      coincidence window "<<fCoincWindow<<std::endl;
-	}
-	if(fCoincLatency != templateSettings.CoincLatency()) {
-		std::cout<<"      coincidence latency "<<fCoincLatency<<std::endl;
 	}
 	if(fInputRange != templateSettings.InputRange()) {
 		std::cout<<"      input range "<<fInputRange<<std::endl;
@@ -253,6 +249,18 @@ void ChannelSettings::Print(const ChannelSettings& templateSettings)
 	}
 	if(fChargeThreshold != templateSettings.ChargeThreshold()) {
 		std::cout<<"      charge threshold "<<fChargeThreshold<<std::endl;
+	}
+	if(fTriggerWidth != templateSettings.TriggerWidth()) {
+		std::cout<<"      trigger width "<<fTriggerWidth<<std::endl;
+	}
+	if(fTriggerMode != templateSettings.TriggerMode()) {
+		std::cout<<"      trigger mode "<<fTriggerMode<<std::endl;
+	}
+	if(fTriggerMask != templateSettings.TriggerMask()) {
+		std::cout<<"      trigger mask "<<fTriggerMask<<std::endl;
+	}
+	if(fCoincidenceMode != templateSettings.CoincidenceMode()) {
+		std::cout<<"      coincidence mode "<<fCoincidenceMode<<std::endl;
 	}
 }
 
@@ -279,13 +287,14 @@ void ChannelSettings::Print()
 	} else {
 		std::cout<<"      cfd disabled"<<std::endl;
 	}
-	std::cout<<"      coincidence "<<(fEnableCoinc?"enabled":"disabled")<<std::endl
-		<<"      baseline "<<(fEnableBaseline?"enabled":"disabled")<<std::endl
-		<<"      coincidence window "<<fCoincWindow<<std::endl
-		<<"      coincidence latency "<<fCoincLatency<<std::endl
+	std::cout<<"      baseline "<<(fEnableBaseline?"enabled":"disabled")<<std::endl
 		<<"      input range "<<fInputRange<<std::endl
 		<<"      enable zero suppression "<<fEnableZeroSuppression<<std::endl
-		<<"      charge threshold "<<fChargeThreshold<<std::endl;
+		<<"      charge threshold "<<fChargeThreshold<<std::endl
+		<<"      trigger width "<<fTriggerWidth<<std::endl
+		<<"      trigger mode "<<fTriggerMode<<std::endl
+		<<"      trigger mask "<<fTriggerMask<<std::endl
+		<<"      coincidence mode "<<fCoincidenceMode<<std::endl;
 }
 
 bool operator==(const ChannelSettings& lh, const ChannelSettings& rh)
@@ -296,13 +305,14 @@ bool operator==(const ChannelSettings& lh, const ChannelSettings& rh)
 			  lh.fPulsePolarity         == rh.fPulsePolarity &&
 			  lh.fEnableCfd             == rh.fEnableCfd &&
 			  lh.fCfdParameters         == rh.fCfdParameters &&
-			  lh.fEnableCoinc           == rh.fEnableCoinc &&
 			  lh.fEnableBaseline        == rh.fEnableBaseline &&
-			  lh.fCoincWindow           == rh.fCoincWindow &&
-			  lh.fCoincLatency          == rh.fCoincLatency &&
 			  lh.fInputRange            == rh.fInputRange &&
 			  lh.fEnableZeroSuppression == rh.fEnableZeroSuppression &&
-			  lh.fChargeThreshold       == rh.fChargeThreshold);
+			  lh.fChargeThreshold       == rh.fChargeThreshold &&
+			  lh.fTriggerWidth == rh.fTriggerWidth &&
+			  lh.fTriggerMode == rh.fTriggerMode &&
+			  lh.fTriggerMask == rh.fTriggerMask &&
+			  lh.fCoincidenceMode == rh.fCoincidenceMode);
 }
 
 bool operator!=(const ChannelSettings& lh, const ChannelSettings& rh)
@@ -322,7 +332,8 @@ BoardSettings::BoardSettings(const int& nofChannels, const V1730_TEMPLATE& templ
 	fChannelMask      = templateSettings.channel_mask;
 	fRunSync          = static_cast<CAEN_DGTZ_RunSyncMode_t>(templateSettings.runsync_mode);
 	fEventAggregation = templateSettings.event_aggregation;
-	fTriggerMode      = static_cast<CAEN_DGTZ_TriggerMode_t>(templateSettings.trigger_mode);
+	fTriggerMode      = static_cast<CAEN_DGTZ_TriggerMode_t>(templateSettings.board_trigger_mode);
+	fTriggerPropagation = templateSettings.trigger_propagation;
 	fChannelSettings.resize(nofChannels, ChannelSettings(templateSettings));
 	fChannelPsdParameter.purh   = static_cast<CAEN_DGTZ_DPP_PUR_t>(templateSettings.pile_up_rejection_mode);
 	fChannelPsdParameter.purgap = templateSettings.pile_up_gap;
@@ -372,6 +383,7 @@ BoardSettings::BoardSettings(const int& boardNumber, const int& nofChannels, TEn
 	fChannelMask      = settings->GetValue(Form("Board.%d.ChannelMask", boardNumber), 0xff);
 	fRunSync          = static_cast<CAEN_DGTZ_RunSyncMode_t>(settings->GetValue(Form("Board.%d.RunSync", boardNumber), CAEN_DGTZ_RUN_SYNC_Disabled));//0
 	fEventAggregation = settings->GetValue(Form("Board.%d.EventAggregate", boardNumber), 0);
+	fTriggerPropagation = settings->GetValue(Form("Board.%d.TriggerPropagation", boardNumber), false);
 
 	fChannelSettings.resize(nofChannels);
 	fChannelPsdParameter.purh   = static_cast<CAEN_DGTZ_DPP_PUR_t>(settings->GetValue(Form("Board.%d.PileUpRejection", boardNumber), CAEN_DGTZ_DPP_PSD_PUR_DetectOnly));//0
@@ -443,7 +455,7 @@ void BoardSettings::ReadCustomSettings(const HNDLE& hDb, const HNDLE& hKey)
 		} else if(strcmp(key.name, "IO Level") == 0 && key.num_values == 1) {
 			size = sizeof(fIOLevel);
 			db_get_data(hDb, hSubKey, &fIOLevel, &size, TID_WORD);
-		} else if(strcmp(key.name, "Trigger Mode") == 0 && key.num_values == 1) {
+		} else if(strcmp(key.name, "Board Trigger Mode") == 0 && key.num_values == 1) {
 			size = sizeof(fTriggerMode);
 			db_get_data(hDb, hSubKey, &fTriggerMode, &size, TID_WORD);
 		} else if(strcmp(key.name, "Channel Mask") == 0 && key.num_values == 1) {
@@ -461,6 +473,9 @@ void BoardSettings::ReadCustomSettings(const HNDLE& hDb, const HNDLE& hKey)
 		} else if(strcmp(key.name, "Pile up gap") == 0 && key.num_values == 1) {
 			size = sizeof(fChannelPsdParameter.purgap);
 			db_get_data(hDb, hSubKey, &fChannelPsdParameter.purgap, &size, TID_WORD);
+		} else if(strcmp(key.name, "Trigger Propagation") == 0 && key.num_values == 1) {
+			size = sizeof(fTriggerPropagation);
+			db_get_data(hDb, hSubKey, &fTriggerPropagation, &size, TID_BOOL);
 		} else if(strncmp(key.name, "Channel ", 8) != 0) {
 			std::cout<<"unrecognized custom entry "<<key.name<<std::endl;
 		}
@@ -694,6 +709,9 @@ void BoardSettings::Print(const BoardSettings& templateSettings)
 				break;
 		}
 	}
+	if(fTriggerPropagation != templateSettings.TriggerPropagation()) {
+		std::cout<<"    trigger propagation "<<fTriggerPropagation<<std::endl;
+	}
 
 	if(fChannelPsdParameter.purh != templateSettings.ChannelPsdParameter()->purh) {
 		std::cout<<"   pile-up rejection mode "<<fChannelPsdParameter.purh<<" = ";
@@ -790,7 +808,7 @@ void BoardSettings::Print(const BoardSettings& templateSettings)
 			std::cout<<"      trigger validation window "<<fChannelPhaParameter.twwdt[ch]<<std::endl;
 		}
 		if(fChannelPhaParameter.dgain[ch]      != templateSettings.ChannelPhaParameter()->dgain[0]) {
-			std::cout<<"      digitakl gain "<<fChannelPhaParameter.dgain[ch]<<std::endl;
+			std::cout<<"      digital gain "<<fChannelPhaParameter.dgain[ch]<<std::endl;
 		}
 		if(fChannelPhaParameter.enf[ch]        != templateSettings.ChannelPhaParameter()->enf[0]) {
 			std::cout<<"      energy normalization "<<fChannelPhaParameter.enf[ch]<<std::endl;
@@ -907,6 +925,7 @@ void BoardSettings::Print()
 			std::cout<<"acq and ext out"<<std::endl;
 			break;
 	}
+	std::cout<<"    trigger propagation "<<fTriggerPropagation<<std::endl;
 
 	std::cout<<"   pile-up rejection mode "<<fChannelPsdParameter.purh<<" = ";
 	switch(fChannelPsdParameter.purh) {
@@ -976,6 +995,7 @@ bool operator==(const BoardSettings& lh, const BoardSettings& rh)
 			  lh.fRunSync             == rh.fRunSync &&
 			  lh.fEventAggregation    == rh.fEventAggregation &&
 			  lh.fTriggerMode         == rh.fTriggerMode &&
+			  lh.fTriggerPropagation  == rh.fTriggerPropagation &&
 			  lh.fChannelPsdParameter == rh.fChannelPsdParameter &&
 			  lh.fChannelPhaParameter == rh.fChannelPhaParameter);
 }
@@ -1048,7 +1068,7 @@ bool CaenSettings::ReadOdb(HNDLE hDB)
 			<<"vme_base_address "<<templateSettings.vme_base_address<<std::endl
 			<<"acquisition_mode "<<templateSettings.acquisition_mode<<std::endl
 			<<"io_level "<<templateSettings.io_level<<std::endl
-			<<"trigger_mode "<<templateSettings.trigger_mode<<std::endl
+			<<"trigger_mode "<<templateSettings.board_trigger_mode<<std::endl
 			<<"channel_mask "<<templateSettings.channel_mask<<std::endl
 			<<"runsync_mode "<<templateSettings.runsync_mode<<std::endl
 			<<"event_aggregation "<<templateSettings.event_aggregation<<std::endl
@@ -1182,10 +1202,7 @@ bool CaenSettings::WriteOdb()
 	//script<<"odbedit -c \"set \\\"/DAQ/params/VX1730/custom/CFD delay\\\" "<<(fCfdParameters & 0xff)<<"\""<<std::endl;
 	//script<<"odbedit -c \"set \\\"/DAQ/params/VX1730/custom/CFD fraction\\\" "<<((fCfdParameters>>8) & 0x3)<<"\""<<std::endl;
 	//script<<"odbedit -c \"set \\\"/DAQ/params/VX1730/custom/CFD interpolation points\\\" "<<((fCfdParameters>>10) & 0x3)<<"\""<<std::endl;
-	//script<<"odbedit -c \"set \\\"/DAQ/params/VX1730/custom/Enable Coincidence\\\" "<<fEnableCoinc<<"\""<<std::endl;
 	//script<<"odbedit -c \"set \\\"/DAQ/params/VX1730/custom/Enable Baseline\\\" "<<fEnableBaseline<<"\""<<std::endl;
-	//script<<"odbedit -c \"set \\\"/DAQ/params/VX1730/custom/Coincidence Window\\\" "<<fCoincWindow <<"\""<<std::endl;
-	//script<<"odbedit -c \"set \\\"/DAQ/params/VX1730/custom/Coincidence Latency\\\" "<<fCoincLatency <<"\""<<std::endl;
 
 	//script<<"odbedit -c \"set \\\"/DAQ/params/VX1730/custom/Pile up rejection mode\\\" "<<fChannelPsdParameter.purh<<"\""<<std::endl;
 	//script<<"odbedit -c \"set \\\"/DAQ/params/VX1730/custom/Pile up gap\\\" "<<fChannelPsdParameter.purgap<<"\""<<std::endl;
@@ -1246,10 +1263,7 @@ bool CaenSettings::WriteOdb()
 	//settings.cfd_fraction = (fCfdParameters>>8) & 0x3;
 	//settings.cfd_interpolation_points = (fCfdParameters>>10) & 0x3;
 
-	//settings.enable_coinc = fEnableCoinc;
 	//settings.enable_baseline = fEnableBaseline;
-	//settings.coinc_window = fCoincWindow;
-	//settings.coinc_latency = fCoincLatency;
 
 	//settings.pile_up_rejection_mode = fChannelPsdParameter.purh;
 	//settings.pile_up_gap = fChannelPsdParameter.purgap;

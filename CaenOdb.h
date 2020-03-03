@@ -38,10 +38,11 @@ typedef struct {
   DWORD     vme_base_address;
   WORD      acquisition_mode;
   WORD      io_level;
-  WORD      trigger_mode;
+  WORD      board_trigger_mode;
   WORD      channel_mask;
   WORD		runsync_mode;
   WORD		event_aggregation;
+  BOOL		trigger_propagation;
   // per channel parameters
   WORD		record_length;
   WORD		dc_offset;
@@ -58,6 +59,10 @@ typedef struct {
   BOOL		input_range;
   BOOL		enable_zs;
   WORD		charge_threshold;
+  WORD		trigger_width;
+  WORD		trigger_mode;
+  WORD		trigger_mask;
+  WORD		coincidence_mode;
 
   // for channel PSD and PHA parameters structure
   WORD		threshold;
@@ -97,15 +102,16 @@ typedef struct {
 	"Channels per digitizer = WORD : 8",\
 	"Use external clock = BOOL : 0",\
 	"Raw output = BOOL : 0",\
-	"Link Type = WORD : 1",\
-	"Board Type = WORD : 2",\
+	"Link type = WORD : 1",\
+	"Board type = WORD : 2",\
 	"VME base address = DWORD : 0",\
-	"Acquisition Mode = WORD : 1",\
-	"IO Level = WORD : 0",\
-	"Trigger Mode = WORD : 1",\
-	"Channel Mask = WORD : 0xff",\
+	"Acquisition mode = WORD : 1",\
+	"IO level = WORD : 0",\
+	"Board trigger Mode = WORD : 1",\
+	"Channel mask = WORD : 0xff",\
 	"RunSync mode = WORD : 0",\
 	"Event aggregation = WORD : 0",\
+	"Trigger propagation = BOOL : 0",\
 	"Record length = WORD : 192",\
 	"DC offset = WORD : 0x8000",\
 	"Pre trigger = WORD : 80",\
@@ -114,13 +120,14 @@ typedef struct {
 	"CFD delay = WORD : 2",\
 	"CFD fraction = WORD : 0",\
 	"CFD interpolation points = WORD : 0",\
-	"Enable Coincidence = BOOL : 0",\
-	"Enable Baseline = BOOL : 0",\
-	"Coincidence window = WORD : 2",\
-	"Coincidence latency = WORD : 0",\
+	"Enable baseline = BOOL : 0",\
 	"Input range = BOOL : 0",\
 	"Enable zero suppression = BOOL : 0",\
 	"Charge threshold = WORD : 0",\
+	"Trigger width = WORD : 50",\
+	"Trigger mode = WORD : 0",\
+	"Trigger mask = WORD : 0",\
+	"Coincidence mode = WORD : 0",\
 	"Threshold = WORD : 50",\
 	"Baseline samples = WORD : 4",\
 	"Trigger holdoff = WORD : 8",\

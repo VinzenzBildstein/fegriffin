@@ -80,7 +80,17 @@ void CaenDigitizer::Setup()
 				CAEN_DGTZ_CloseDigitizer(fHandle[b]);
 				throw std::runtime_error(format("Error %d when reading digitizer info", errorCode));
 			}
-			std::cout<<std::endl<<"Connected to CAEN Digitizer Model "<<boardInfo.ModelName<<" serial number "<<boardInfo.SerialNumber<<" as "<<b<<". board, using port "<<fPort[b]<<", device "<<fDevice[b]<<std::endl;
+			std::cout<<std::endl<<"Connected to CAEN Digitizer Model "<<boardInfo.ModelName;
+			if(boardInfo.FamilyCode == CAEN_DGTZ_XX725_FAMILY_CODE) {
+				std::cout<<" family x725";
+				fSettings->FamilyType(b, CAEN_DGTZ_XX725_FAMILY_CODE);
+			} else if(boardInfo.FamilyCode == CAEN_DGTZ_XX730_FAMILY_CODE) {
+				std::cout<<" family x730";
+				fSettings->FamilyType(b, CAEN_DGTZ_XX730_FAMILY_CODE);
+			} else {
+				throw std::runtime_error(format("Digitizer %d has unknown family code %d", b, boardInfo.FamilyCode));
+			}
+			std::cout<<" serial number "<<boardInfo.SerialNumber<<" as "<<b<<". board, using port "<<fPort[b]<<", device "<<fDevice[b]<<std::endl;
 			std::cout<<std::endl<<"Firmware is ROC "<<boardInfo.ROC_FirmwareRel<<", AMC "<<boardInfo.AMC_FirmwareRel<<std::endl;
 
 			std::stringstream str(boardInfo.AMC_FirmwareRel);
@@ -687,6 +697,13 @@ void CaenDigitizer::ProgramPhaDigitizer(int b)
 	//data = (data & ~0xeffff) | 0xE8910; //record waveform with dual trace(input and trapezoid-baseline) + peaking digital, pha settings	
 	//	       	data = (data & ~0xeffff) | 0xE3910; //record waveform with dual trace(trapezoid and input) + peaking digital, pha settings
 	//	data = (data & ~0xeffff) | 0xE2910; //record waveform with dual trace(rc-cr2 and input) + peaking digital, pha settings	
+	if(fSettings->TriggerPropagation(b)) {
+		// set bit 2
+		data |= 0x4;
+	} else {
+		// unset bit 2
+		data &= ~0x4;
+	}
 	CAEN_DGTZ_WriteRegister(fHandle[b], address, data);
 
 	for(int ch = 0; ch < fSettings->NumberOfChannels(); ++ch) {
@@ -694,6 +711,16 @@ void CaenDigitizer::ProgramPhaDigitizer(int b)
 			if(fDebug) std::cout<<"programming channel "<<ch<<std::endl;
 			if(ch%2 == 0) {
 				errorCode = CAEN_DGTZ_SetRecordLength(fHandle[b], fSettings->RecordLength(b, ch), ch);
+				// local trigger mode (0x54 for coincidences)
+				address = 0x10a0 + ch*0x100;
+				CAEN_DGTZ_ReadRegister(fHandle[b], address, &data);
+				data = (data & ~0xff) | (fSettings->TriggerMode(b, ch) & 0xff);
+				CAEN_DGTZ_WriteRegister(fHandle[b], address, data);
+				// trigger validation mask
+				address = 0x8180 + ch*0x2;
+				CAEN_DGTZ_ReadRegister(fHandle[b], address, &data);
+				data = (data & ~0x3ff) | (fSettings->TriggerMask(b, ch) & 0x3ff);
+				CAEN_DGTZ_WriteRegister(fHandle[b], address, data);
 			}
 
 			errorCode = CAEN_DGTZ_SetChannelDCOffset(fHandle[b], ch, fSettings->DCOffset(b, ch));
@@ -706,25 +733,22 @@ void CaenDigitizer::ProgramPhaDigitizer(int b)
 			address = 0x1028 + ch*0x100;
 			CAEN_DGTZ_ReadRegister(fHandle[b], address, &data);
 			if(fSettings->InputRange(b, ch)) {
-				data = (data & ~0x1) | 0x1;
+				data |= 0x1;
 			} else {
-				data = (data & ~0x1) | 0x0;
+				data &= ~0x1;
 			}
 			CAEN_DGTZ_WriteRegister(fHandle[b], address, data);
 
-
-			//DPP algorithm control
-			//Trapezoid Rescaling, Decimation, Decimation Gain, Peak Mean, Invert Input
-			//If there is every overflow in the energy look at this setting?
+			//Coincindence mode
 			address = 0x1080 + ch*0x100;
-			// went from 0x15 (725) to 0x17 (730) to get suitable trapezoid rescaling value
-			data = 0x0C301017; //peak sampling set to 4 samples, baseline averaging set to 256 samples
+			CAEN_DGTZ_ReadRegister(fHandle[b], address, &data);
+			data = (data & ~0xc0000) | ((fSettings->CoincidenceMode(b, ch) & 0x3) << 18);
 			CAEN_DGTZ_WriteRegister(fHandle[b], address, data);
 
 			//Shaped Trigger Width (fast descriminator output) logic signal to propagate trigger info
 			address = 0x1084 + ch*0x100;
-			//0x6 (96ns for 725) corresponds to 0xC for 730
-			data = 0x0000000C; //0xC (hex) = 96 ns for 730
+			CAEN_DGTZ_ReadRegister(fHandle[b], address, &data);
+			data = (data & ~0x3ff) | (fSettings->TriggerWidth(b, ch) & 0x3ff);
 			CAEN_DGTZ_WriteRegister(fHandle[b], address, data);
 
 			//DPP Algorithm Control 2: Local shaped trigger mode, Enable local shape trigger, local trigger validtion mode, enable trigger validation, extra words...
@@ -739,51 +763,10 @@ void CaenDigitizer::ProgramPhaDigitizer(int b)
 			//0xA (1048us for 725) corresponds to 0x14 for 730
 			data = 0x00000014; //0x14 (hex) = 1048us for 730
 			CAEN_DGTZ_WriteRegister(fHandle[b], address, data);
-
-			//Readout Control for VME boards mostly
-			address = 0xEF00 + ch*0x100;
-			data = 0x00000010;  
-			CAEN_DGTZ_WriteRegister(fHandle[b], address, data);
-
-			address = 0x81A0 + ch*0x100;
-			data = 0x00000000; 
-			CAEN_DGTZ_WriteRegister(fHandle[b], address, data);
 		}
 	}
 
 	errorCode = CAEN_DGTZ_SetDPPEventAggregation(fHandle[b], fSettings->EventAggregation(b), 0);
-	////Number of events per aggregate
-	//address = 0x1034;
-	//data = 0x000003ff; 
-	//CAEN_DGTZ_WriteRegister(fHandle[b], address, data);
-
-
-	// taken from CAENDigitizer library example ReadoutTest_DPP_PHA_x725_x730.c (needs to be compared to above registers):
-	//CAEN_DGTZ_DPP_PHA_Params_t DPPParams;
-
-	//	for(int ch = 0; ch < fSettings->NumberOfChannels(); ++ch) {
-	//	DPPParams.thr[ch] = 100;   // Trigger Threshold (in LSB)
-	//		DPPParams.k[ch] = 3000;     // Trapezoid Rise Time (ns) 
-	//		DPPParams.m[ch] = 900;      // Trapezoid Flat Top  (ns) 
-	//		DPPParams.M[ch] = 50000;      // Decay Time Constant (ns) 
-	//		DPPParams.ftd[ch] = 500;    // Flat top delay (peaking time) (ns) 
-	//		DPPParams.a[ch] = 4;       // Trigger Filter smoothing factor (number of samples to average for RC-CR2 filter) Options: 1; 2; 4; 8; 16; 32 
-	//		DPPParams.b[ch] = 200;     // Input Signal Rise time (ns) 
-	//	DPPParams.trgho[ch] = 1200;  // Trigger Hold Off
-	//	DPPParams.nsbl[ch] = 4;     //number of samples for baseline average calculation. Options: 1->16 samples; 2->64 samples; 3->256 samples; 4->1024 samples; 5->4096 samples; 6->16384 samples
-	//	DPPParams.nspk[ch] = 0;     //Peak mean (number of samples to average for trapezoid height calculation). Options: 0-> 1 sample; 1->4 samples; 2->16 samples; 3->64 samples
-	//	DPPParams.pkho[ch] = 2000;  //peak holdoff (ns)
-	//	DPPParams.blho[ch] = 500;   //Baseline holdoff (ns)
-	//	DPPParams.enf[ch] = 1.0; // Energy Normalization Factor
-	//	DPPParams.decimation[ch] = 0;  //decimation (the input signal samples are averaged within this number of samples): 0 ->disabled; 1->2 samples; 2->4 samples; 3->8 samples
-	//	DPPParams.dgain[ch] = 0;    //decimation gain. Options: 0->DigitalGain=1; 1->DigitalGain=2 (only with decimation >= 2samples); 2->DigitalGain=4 (only with decimation >= 4samples); 3->DigitalGain=8( only with decimation = 8samples).
-	//	DPPParams.otrej[ch] = 0;
-	//	DPPParams.trgwin[ch] = 0;  //Enable Rise time Discrimination. Options: 0->disabled; 1->enabled
-	//	DPPParams.twwdt[ch] = 100;  //Rise Time Validation Window (ns)
-	//}
-
-
-	//errorCode = CAEN_DGTZ_SetDPPParameters(handle, Params.ChannelMask, &DPPParams);
 
 	if(fDebug) std::cout<<"done with digitizer "<<b<<std::endl;
 }

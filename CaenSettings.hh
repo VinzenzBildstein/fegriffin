@@ -37,14 +37,14 @@ public:
 	void PulsePolarity(const CAEN_DGTZ_PulsePolarity_t& val) { fPulsePolarity = val; }
 	void EnableCfd(const bool& val) { fEnableCfd = val; }
 	void CfdParameters(const uint32_t& val) { fCfdParameters = val; }
-	void EnableCoinc(const bool& val) { fEnableCoinc = val; }
-	//void EnableCoincTrig(const bool& val) { fEnableCoincTrig = val; }
 	void EnableBaseline(const bool& val) { fEnableBaseline = val; }
-	void CoincWindow(const uint32_t& val) { fCoincWindow = val; }
-	void CoincLatency(const uint32_t& val) { fCoincLatency = val; }
 	void InputRange(const bool& val) { fInputRange = val; }
 	void EnableZeroSuppression(const bool& val) { fEnableZeroSuppression = val; }
 	void ChargeThreshold(const uint32_t& val) { fChargeThreshold = val; }
+	void TriggerWidth(const uint16_t& val) { fTriggerWidth = val; }
+	void TriggerMode(const uint8_t& val) { fTriggerMode = val; }
+	void TriggerMask(const uint16_t& val) { fTriggerMask = val; }
+	void CoincidenceMode(const uint8_t& val) { fCoincidenceMode = val; }
 
 	//getters
 	uint32_t RecordLength() const { return fRecordLength; }
@@ -53,14 +53,14 @@ public:
 	CAEN_DGTZ_PulsePolarity_t PulsePolarity() const { return fPulsePolarity; }
 	bool EnableCfd() const { return fEnableCfd; }
 	uint32_t CfdParameters() const { return fCfdParameters; }
-	bool EnableCoinc() const { return fEnableCoinc; }
-	//bool EnableCoincTrig() const { return fEnableCoincTrig; }
 	bool EnableBaseline() const { return fEnableBaseline; }
-	uint32_t CoincWindow() const { return fCoincWindow; }
-	uint32_t CoincLatency() const { return fCoincLatency; }
 	bool InputRange() const { return fInputRange; }
 	bool EnableZeroSuppression() const { return fEnableZeroSuppression; }
 	uint32_t ChargeThreshold() const { return fChargeThreshold; }
+	uint16_t TriggerWidth() const { return fTriggerWidth; }
+	uint8_t TriggerMode() const { return fTriggerMode; }
+	uint16_t TriggerMask() const { return fTriggerMask; }
+	uint8_t CoincidenceMode() const { return fCoincidenceMode; }
 
 	friend bool operator==(const ChannelSettings& lh, const ChannelSettings& rh);
 	friend bool operator!=(const ChannelSettings& lh, const ChannelSettings& rh);
@@ -72,14 +72,14 @@ private:
 	CAEN_DGTZ_PulsePolarity_t fPulsePolarity; //enum
 	bool fEnableCfd;
 	uint16_t fCfdParameters;
-  	bool fEnableCoinc;
-  	//bool fEnableCoincTrig;
   	bool fEnableBaseline;
-  	uint32_t fCoincWindow;
-  	uint32_t fCoincLatency;
 	bool fInputRange;
 	bool fEnableZeroSuppression;
 	uint32_t fChargeThreshold;
+	uint16_t fTriggerWidth;
+	uint8_t fTriggerMode;
+	uint16_t fTriggerMask;
+	uint8_t fCoincidenceMode;
 };
 
 class BoardSettings {
@@ -98,6 +98,8 @@ public:
 	void Print(const BoardSettings& templateSettings);
 	void Print();
 
+	void FamilyType(CAEN_DGTZ_BoardFamilyCode_t code) { fFamilyType = code; }
+
 	//setters
 	void LinkType(const CAEN_DGTZ_ConnectionType& val) { fLinkType = val; }
 	void BoardType(const EBoardType& val) { fBoardType = val; }
@@ -112,6 +114,7 @@ public:
 	void ChannelPhaParameter(const CAEN_DGTZ_DPP_PHA_Params_t& val) { fChannelPhaParameter = val; }
 	void PortNumber(const int& val) { fPortNumber = val; }
 	void DeviceNumber(const int& val) { fDeviceNumber = val; }
+	void TriggerPropagation(const bool& val) { fTriggerPropagation = val; }
 
 	//getters
 	std::vector<ChannelSettings> ChannelSettingsVector() const { return fChannelSettings; }
@@ -128,6 +131,7 @@ public:
 	const CAEN_DGTZ_DPP_PHA_Params_t* ChannelPhaParameter() const { return &fChannelPhaParameter; }
 	int PortNumber() const { return fPortNumber; }
 	int DeviceNumber() const { return fDeviceNumber; }
+	bool TriggerPropagation() const { return fTriggerPropagation; }
 
 	//channel setters
 	void RecordLength(const int& i, const uint32_t& val) { fChannelSettings.at(i).RecordLength(val); }
@@ -136,14 +140,14 @@ public:
 	void PulsePolarity(const int& i, const CAEN_DGTZ_PulsePolarity_t& val) { fChannelSettings.at(i).PulsePolarity(val); }
 	void EnableCfd(const int& i, const bool& val) { fChannelSettings.at(i).EnableCfd(val); }
 	void CfdParameters(const int& i, const uint32_t& val) { fChannelSettings.at(i).CfdParameters(val); }
-	void EnableCoinc(const int& i, const bool& val) { fChannelSettings.at(i).EnableCoinc(val); }
-	//void EnableCoincTrig(const int& i, const bool& val) { fChannelSettings.at(i).EnableCoincTrig(val); }
 	void EnableBaseline(const int& i, const bool& val) { fChannelSettings.at(i).EnableBaseline(val); }
-	void CoincWindow(const int& i, const uint32_t& val) { fChannelSettings.at(i).CoincWindow(val); }
-	void CoincLatency(const int& i, const uint32_t& val) { fChannelSettings.at(i).CoincLatency(val); }
 	void InputRange(const int& i, const bool& val) { fChannelSettings.at(i).InputRange(val); }
 	void EnableZeroSuppression(const int& i, const bool& val) { fChannelSettings.at(i).EnableZeroSuppression(val); }
 	void ChargeThreshold(const int& i, const uint32_t& val) { fChannelSettings.at(i).ChargeThreshold(val); }
+	void TriggerWidth(const int& i, const uint16_t& val) { fChannelSettings.at(i).TriggerWidth(val); }
+	void TriggerMode(const int& i, const uint8_t& val) { fChannelSettings.at(i).TriggerMode(val); }
+	void TriggerMask(const int& i, const uint16_t& val) { fChannelSettings.at(i).TriggerMask(val); }
+	void CoincidenceMode(const int& i, const uint8_t& val) { fChannelSettings.at(i).CoincidenceMode(val); }
 	
 	//channel getters
 	uint32_t RecordLength(const int& i) const { return fChannelSettings.at(i).RecordLength(); }
@@ -152,19 +156,20 @@ public:
 	CAEN_DGTZ_PulsePolarity_t PulsePolarity(const int& i) const { return fChannelSettings.at(i).PulsePolarity(); }
 	bool EnableCfd(const int& i) const { return fChannelSettings.at(i).EnableCfd(); }
 	uint32_t CfdParameters(const int& i) const { return fChannelSettings.at(i).CfdParameters(); }
-	bool EnableCoinc(const int& i) const { return fChannelSettings.at(i).EnableCoinc(); }
-	//bool EnableCoincTrig(const int& i) const { return fChannelSettings.at(i).EnableCoincTrig(); }
 	bool EnableBaseline(const int& i) const { return fChannelSettings.at(i).EnableBaseline(); }
-	uint32_t CoincWindow(const int& i) const { return fChannelSettings.at(i).CoincWindow(); }
-	uint32_t CoincLatency(const int& i) const { return fChannelSettings.at(i).CoincLatency(); }
 	bool InputRange(const int& i) const { return fChannelSettings.at(i).InputRange(); }
 	bool EnableZeroSuppression(const int& i) const { return fChannelSettings.at(i).EnableZeroSuppression(); }
 	uint32_t ChargeThreshold(const int& i) const { return fChannelSettings.at(i).ChargeThreshold(); }
+	uint16_t TriggerWidth(const int& i) const { return fChannelSettings.at(i).TriggerWidth(); }
+	uint8_t TriggerMode(const int& i) const { return fChannelSettings.at(i).TriggerMode(); }
+	uint16_t TriggerMask(const int& i) const { return fChannelSettings.at(i).TriggerMask(); }
+	uint8_t CoincidenceMode(const int& i) const { return fChannelSettings.at(i).CoincidenceMode(); }
 	
 	friend bool operator==(const BoardSettings& lh, const BoardSettings& rh);
 	friend bool operator!=(const BoardSettings& lh, const BoardSettings& rh);
 
 private:
+	CAEN_DGTZ_BoardFamilyCode_t fFamilyType; //enum
 	CAEN_DGTZ_ConnectionType fLinkType; //enum
 	EBoardType fBoardType; // enum
 	uint32_t fVmeBaseAddress;
@@ -176,6 +181,7 @@ private:
 	CAEN_DGTZ_RunSyncMode_t fRunSync; //enum
 	int fEventAggregation;
 	CAEN_DGTZ_TriggerMode_t fTriggerMode; //enum
+	bool fTriggerPropagation;
 	CAEN_DGTZ_DPP_PSD_Params_t fChannelPsdParameter;
 	CAEN_DGTZ_DPP_PHA_Params_t fChannelPhaParameter;
 	std::vector<ChannelSettings> fChannelSettings;
@@ -199,6 +205,8 @@ public:
 
 	size_t NumberOfBoardSettings() const { return fBoardSettings.size(); }
 
+	void FamilyType(int i, CAEN_DGTZ_BoardFamilyCode_t code) { fBoardSettings.at(i).FamilyType(code); }
+
 	//board parameters
 	CAEN_DGTZ_ConnectionType LinkType(int i) const { return fBoardSettings.at(i).LinkType(); }
 	uint32_t VmeBaseAddress(int i) const { return fBoardSettings.at(i).VmeBaseAddress(); }
@@ -213,6 +221,7 @@ public:
 	const CAEN_DGTZ_DPP_PSD_Params_t* ChannelPsdParameter(int i) const { return fBoardSettings.at(i).ChannelPsdParameter(); }
 	const CAEN_DGTZ_DPP_PHA_Params_t* ChannelPhaParameter(int i) const { return fBoardSettings.at(i).ChannelPhaParameter(); }
 	EBoardType BoardType(int i) const { return fBoardSettings.at(i).BoardType(); }
+	bool TriggerPropagation(int i) const { return fBoardSettings.at(i).TriggerPropagation(); }
 
 	//channel parameters
 	uint32_t RecordLength(int i, int j) const { return fBoardSettings.at(i).RecordLength(j); }
@@ -221,14 +230,14 @@ public:
 	CAEN_DGTZ_PulsePolarity_t PulsePolarity(int i, int j) const { return fBoardSettings.at(i).PulsePolarity(j); }
 	bool EnableCfd(int i, int j) const { return fBoardSettings.at(i).EnableCfd(j); }
 	uint16_t CfdParameters(int i, int j) const { return fBoardSettings.at(i).CfdParameters(j); }
-	bool EnableCoinc(int i, int j) const { return fBoardSettings.at(i).EnableCoinc(j); }
-	//bool EnableCoincTrig(int i, int j) const { return fBoardSettings.at(i).EnableCoincTrig(j); }
 	bool EnableBaseline(int i, int j) const { return fBoardSettings.at(i).EnableBaseline(j); }
-	uint32_t CoincWindow(int i, int j) const { return fBoardSettings.at(i).CoincWindow(j); }
-	uint32_t CoincLatency(int i, int j) const { return fBoardSettings.at(i).CoincLatency(j); }
 	bool InputRange(int i, int j) const { return fBoardSettings.at(i).InputRange(j); }
 	bool EnableZeroSuppression(int i, int j) const { return fBoardSettings.at(i).EnableZeroSuppression(j); }
 	uint32_t ChargeThreshold(int i, int j) const { return fBoardSettings.at(i).ChargeThreshold(j); }
+	uint16_t TriggerWidth(int i, int j) const { return fBoardSettings.at(i).TriggerWidth(j); }
+	uint8_t TriggerMode(int i, int j) const { return fBoardSettings.at(i).TriggerMode(j); }
+	uint16_t TriggerMask(int i, int j) const { return fBoardSettings.at(i).TriggerMask(j); }
+	uint8_t CoincidenceMode(int i, int j) const { return fBoardSettings.at(i).CoincidenceMode(j); }
 
 	size_t BufferSize() const { return fBufferSize; }
 
