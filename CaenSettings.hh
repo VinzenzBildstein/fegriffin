@@ -115,6 +115,10 @@ public:
 	void PortNumber(const int& val) { fPortNumber = val; }
 	void DeviceNumber(const int& val) { fDeviceNumber = val; }
 	void TriggerPropagation(const bool& val) { fTriggerPropagation = val; }
+	void DualTrace(const bool& val) { fDualTrace = val; }
+	void AnalogProbe1(const uint8_t& val) { fAnalogProbe1 = val; }
+	void AnalogProbe2(const uint8_t& val) { fAnalogProbe2 = val; }
+	void DigitalProbe(const uint8_t& val) { fDigitalProbe = val; }
 
 	//getters
 	std::vector<ChannelSettings> ChannelSettingsVector() const { return fChannelSettings; }
@@ -132,6 +136,10 @@ public:
 	int PortNumber() const { return fPortNumber; }
 	int DeviceNumber() const { return fDeviceNumber; }
 	bool TriggerPropagation() const { return fTriggerPropagation; }
+	bool DualTrace() const { return fDualTrace; }
+	uint8_t AnalogProbe1() const { return fAnalogProbe1; }
+	uint8_t AnalogProbe2() const { return fAnalogProbe2; }
+	uint8_t DigitalProbe() const { return fDigitalProbe; }
 
 	//channel setters
 	void RecordLength(const int& i, const uint32_t& val) { fChannelSettings.at(i).RecordLength(val); }
@@ -182,6 +190,10 @@ private:
 	int fEventAggregation;
 	CAEN_DGTZ_TriggerMode_t fTriggerMode; //enum
 	bool fTriggerPropagation;
+	bool fDualTrace;
+	uint8_t fAnalogProbe1;
+	uint8_t fAnalogProbe2;
+	uint8_t fDigitalProbe;
 	CAEN_DGTZ_DPP_PSD_Params_t fChannelPsdParameter;
 	CAEN_DGTZ_DPP_PHA_Params_t fChannelPhaParameter;
 	std::vector<ChannelSettings> fChannelSettings;
@@ -222,6 +234,10 @@ public:
 	const CAEN_DGTZ_DPP_PHA_Params_t* ChannelPhaParameter(int i) const { return fBoardSettings.at(i).ChannelPhaParameter(); }
 	EBoardType BoardType(int i) const { return fBoardSettings.at(i).BoardType(); }
 	bool TriggerPropagation(int i) const { return fBoardSettings.at(i).TriggerPropagation(); }
+	bool DualTrace(int i) const { return fBoardSettings.at(i).DualTrace(); }
+	uint8_t AnalogProbe1(int i) const { return fBoardSettings.at(i).AnalogProbe1(); }
+	uint8_t AnalogProbe2(int i) const { return fBoardSettings.at(i).AnalogProbe2(); }
+	uint8_t DigitalProbe(int i) const { return fBoardSettings.at(i).DigitalProbe(); }
 
 	//channel parameters
 	uint32_t RecordLength(int i, int j) const { return fBoardSettings.at(i).RecordLength(j); }

@@ -334,6 +334,10 @@ BoardSettings::BoardSettings(const int& nofChannels, const V1730_TEMPLATE& templ
 	fEventAggregation = templateSettings.event_aggregation;
 	fTriggerMode      = static_cast<CAEN_DGTZ_TriggerMode_t>(templateSettings.board_trigger_mode);
 	fTriggerPropagation = templateSettings.trigger_propagation;
+	fDualTrace        = templateSettings.dual_trace;
+	fAnalogProbe1     = templateSettings.analog_probe1;
+	fAnalogProbe2     = templateSettings.analog_probe2;
+	fDigitalProbe     = templateSettings.digital_probe;
 	fChannelSettings.resize(nofChannels, ChannelSettings(templateSettings));
 	fChannelPsdParameter.purh   = static_cast<CAEN_DGTZ_DPP_PUR_t>(templateSettings.pile_up_rejection_mode);
 	fChannelPsdParameter.purgap = templateSettings.pile_up_gap;
@@ -384,6 +388,10 @@ BoardSettings::BoardSettings(const int& boardNumber, const int& nofChannels, TEn
 	fRunSync          = static_cast<CAEN_DGTZ_RunSyncMode_t>(settings->GetValue(Form("Board.%d.RunSync", boardNumber), CAEN_DGTZ_RUN_SYNC_Disabled));//0
 	fEventAggregation = settings->GetValue(Form("Board.%d.EventAggregate", boardNumber), 0);
 	fTriggerPropagation = settings->GetValue(Form("Board.%d.TriggerPropagation", boardNumber), false);
+	fDualTrace = settings->GetValue(Form("Board.%d.DualTrace", boardNumber), false);
+	fAnalogProbe1 = settings->GetValue(Form("Board.%d.AnalogProbe1", boardNumber), 0);
+	fAnalogProbe2 = settings->GetValue(Form("Board.%d.AnalogProbe2", boardNumber), 2);
+	fDigitalProbe = settings->GetValue(Form("Board.%d.DigitalProbe", boardNumber), 0);
 
 	fChannelSettings.resize(nofChannels);
 	fChannelPsdParameter.purh   = static_cast<CAEN_DGTZ_DPP_PUR_t>(settings->GetValue(Form("Board.%d.PileUpRejection", boardNumber), CAEN_DGTZ_DPP_PSD_PUR_DetectOnly));//0
@@ -473,9 +481,21 @@ void BoardSettings::ReadCustomSettings(const HNDLE& hDb, const HNDLE& hKey)
 		} else if(strcmp(key.name, "Pile up gap") == 0 && key.num_values == 1) {
 			size = sizeof(fChannelPsdParameter.purgap);
 			db_get_data(hDb, hSubKey, &fChannelPsdParameter.purgap, &size, TID_WORD);
-		} else if(strcmp(key.name, "Trigger Propagation") == 0 && key.num_values == 1) {
+		} else if(strcmp(key.name, "Trigger propagation") == 0 && key.num_values == 1) {
 			size = sizeof(fTriggerPropagation);
 			db_get_data(hDb, hSubKey, &fTriggerPropagation, &size, TID_BOOL);
+		} else if(strcmp(key.name, "Dual trace") == 0 && key.num_values == 1) {
+			size = sizeof(fDualTrace);
+			db_get_data(hDb, hSubKey, &fDualTrace, &size, TID_BOOL);
+		} else if(strcmp(key.name, "Analog probe 1") == 0 && key.num_values == 1) {
+			size = sizeof(fAnalogProbe1);
+			db_get_data(hDb, hSubKey, &fAnalogProbe1, &size, TID_WORD);
+		} else if(strcmp(key.name, "Analog probe 2") == 0 && key.num_values == 1) {
+			size = sizeof(fAnalogProbe2);
+			db_get_data(hDb, hSubKey, &fAnalogProbe2, &size, TID_WORD);
+		} else if(strcmp(key.name, "Digital probe") == 0 && key.num_values == 1) {
+			size = sizeof(fDigitalProbe);
+			db_get_data(hDb, hSubKey, &fDigitalProbe, &size, TID_WORD);
 		} else if(strncmp(key.name, "Channel ", 8) != 0) {
 			std::cout<<"unrecognized custom entry "<<key.name<<std::endl;
 		}
@@ -712,6 +732,18 @@ void BoardSettings::Print(const BoardSettings& templateSettings)
 	if(fTriggerPropagation != templateSettings.TriggerPropagation()) {
 		std::cout<<"    trigger propagation "<<fTriggerPropagation<<std::endl;
 	}
+	if(fDualTrace != templateSettings.DualTrace()) {
+		std::cout<<"    dual trace "<<fDualTrace<<std::endl;
+	}
+	if(fAnalogProbe1 != templateSettings.AnalogProbe1()) {
+		std::cout<<"    analog probe 1 "<<fAnalogProbe1<<std::endl;
+	}
+	if(fAnalogProbe2 != templateSettings.AnalogProbe2()) {
+		std::cout<<"    analog probe 2 "<<fAnalogProbe2<<std::endl;
+	}
+	if(fDigitalProbe != templateSettings.DigitalProbe()) {
+		std::cout<<"    digital probe "<<fDigitalProbe<<std::endl;
+	}
 
 	if(fChannelPsdParameter.purh != templateSettings.ChannelPsdParameter()->purh) {
 		std::cout<<"   pile-up rejection mode "<<fChannelPsdParameter.purh<<" = ";
@@ -926,6 +958,10 @@ void BoardSettings::Print()
 			break;
 	}
 	std::cout<<"    trigger propagation "<<fTriggerPropagation<<std::endl;
+	std::cout<<"    dual trace "<<fDualTrace<<std::endl;
+	std::cout<<"    analog probe 1 "<<fAnalogProbe1<<std::endl;
+	std::cout<<"    analog probe 2 "<<fAnalogProbe2<<std::endl;
+	std::cout<<"    digital probe "<<fDigitalProbe<<std::endl;
 
 	std::cout<<"   pile-up rejection mode "<<fChannelPsdParameter.purh<<" = ";
 	switch(fChannelPsdParameter.purh) {
@@ -996,6 +1032,10 @@ bool operator==(const BoardSettings& lh, const BoardSettings& rh)
 			  lh.fEventAggregation    == rh.fEventAggregation &&
 			  lh.fTriggerMode         == rh.fTriggerMode &&
 			  lh.fTriggerPropagation  == rh.fTriggerPropagation &&
+			  lh.fDualTrace           == rh.fDualTrace &&
+			  lh.fAnalogProbe1        == rh.fAnalogProbe1 &&
+			  lh.fAnalogProbe2        == rh.fAnalogProbe2 &&
+			  lh.fDigitalProbe        == rh.fDigitalProbe &&
 			  lh.fChannelPsdParameter == rh.fChannelPsdParameter &&
 			  lh.fChannelPhaParameter == rh.fChannelPhaParameter);
 }

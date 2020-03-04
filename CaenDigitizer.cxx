@@ -693,10 +693,6 @@ void CaenDigitizer::ProgramPhaDigitizer(int b)
 	//write some special registers directly, enable EXTRA word
 	address = 0x8000;
 	CAEN_DGTZ_ReadRegister(fHandle[b], address, &data);
-	data = (data & ~0xfeffff) | 0x7E3910; //record waveform with dual trace(trapezoid and input) + holdoff digital, pha settings	
-	//data = (data & ~0xeffff) | 0xE8910; //record waveform with dual trace(input and trapezoid-baseline) + peaking digital, pha settings	
-	//	       	data = (data & ~0xeffff) | 0xE3910; //record waveform with dual trace(trapezoid and input) + peaking digital, pha settings
-	//	data = (data & ~0xeffff) | 0xE2910; //record waveform with dual trace(rc-cr2 and input) + peaking digital, pha settings	
 	if(fSettings->TriggerPropagation(b)) {
 		// set bit 2
 		data |= 0x4;
@@ -704,6 +700,19 @@ void CaenDigitizer::ProgramPhaDigitizer(int b)
 		// unset bit 2
 		data &= ~0x4;
 	}
+	if(fSettings->DualTrace(b)) {
+		// set bit 11
+		data |= 0x800;
+	} else {
+		// unset bit 11
+		data &= ~0x800;
+	}
+	// analog probes
+	data = (data & ~0xf000) | ((fSettings->AnalogProbe1(b) & 0x3)<<12) | ((fSettings->AnalogProbe2(b) & 0x3)<<14);
+	// always enable extra word (set bit 17)
+	data |= 0x10000;
+	// digital probe
+	data = (data & ~0xf00000) | ((fSettings->DigitalProbe(b) & 0xf)<<20);
 	CAEN_DGTZ_WriteRegister(fHandle[b], address, data);
 
 	for(int ch = 0; ch < fSettings->NumberOfChannels(); ++ch) {

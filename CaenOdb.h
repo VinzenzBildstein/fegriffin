@@ -43,6 +43,10 @@ typedef struct {
   WORD		runsync_mode;
   WORD		event_aggregation;
   BOOL		trigger_propagation;
+  BOOL		dual_trace;
+  WORD		analog_probe1;
+  WORD		analog_probe2;
+  WORD		digital_probe;
   // per channel parameters
   WORD		record_length;
   WORD		dc_offset;
@@ -112,6 +116,10 @@ typedef struct {
 	"RunSync mode = WORD : 0",\
 	"Event aggregation = WORD : 0",\
 	"Trigger propagation = BOOL : 0",\
+	"Dual trace = BOOL : 0",\
+	"Analog probe 1 = WORD : 0",\
+	"Analog probe 2 = WORD : 2",\
+	"Digital probe = WORD : 0",\
 	"Record length = WORD : 192",\
 	"DC offset = WORD : 0x8000",\
 	"Pre trigger = WORD : 80",\
