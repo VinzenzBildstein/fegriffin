@@ -67,6 +67,9 @@ typedef struct {
   WORD		trigger_mode;
   WORD		trigger_mask;
   WORD		coincidence_mode;
+  WORD		extras;
+  WORD		counter_stepsize;
+  BOOL		baseline_restore;
 
   // for channel PSD and PHA parameters structure
   WORD		threshold;
@@ -136,6 +139,9 @@ typedef struct {
 	"Trigger mode = WORD : 0",\
 	"Trigger mask = WORD : 0",\
 	"Coincidence mode = WORD : 0",\
+	"Extras = WORD : 0",\
+	"Counter stepsize = WORD : 0",\
+	"Baseline restore = BOOL : 0",\
 	"Threshold = WORD : 50",\
 	"Baseline samples = WORD : 4",\
 	"Trigger holdoff = WORD : 8",\

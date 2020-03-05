@@ -688,6 +688,7 @@ void CaenDigitizer::ProgramPhaDigitizer(int b)
 		errorCode = CAEN_DGTZ_ErrorCode(0);
 	}
 
+	// these are all in ns, except for number of samples in baseline (nsbl), or peak meand (nspk). 
 	errorCode = CAEN_DGTZ_SetDPPParameters(fHandle[b], fSettings->ChannelMask(b), const_cast<void*>(static_cast<const void*>(fSettings->ChannelPhaParameter(b))));
 
 	//write some special registers directly, enable EXTRA word
@@ -718,13 +719,9 @@ void CaenDigitizer::ProgramPhaDigitizer(int b)
 	for(int ch = 0; ch < fSettings->NumberOfChannels(); ++ch) {
 		if((fSettings->ChannelMask(b) & (1<<ch)) != 0) {
 			if(fDebug) std::cout<<"programming channel "<<ch<<std::endl;
+			// record length only works for even channels in the 730 series, but for both in the 725 series?
+			errorCode = CAEN_DGTZ_SetRecordLength(fHandle[b], fSettings->RecordLength(b, ch), ch);
 			if(ch%2 == 0) {
-				errorCode = CAEN_DGTZ_SetRecordLength(fHandle[b], fSettings->RecordLength(b, ch), ch);
-				// local trigger mode (0x54 for coincidences)
-				address = 0x10a0 + ch*0x100;
-				CAEN_DGTZ_ReadRegister(fHandle[b], address, &data);
-				data = (data & ~0xff) | (fSettings->TriggerMode(b, ch) & 0xff);
-				CAEN_DGTZ_WriteRegister(fHandle[b], address, data);
 				// trigger validation mask
 				address = 0x8180 + ch*0x2;
 				CAEN_DGTZ_ReadRegister(fHandle[b], address, &data);
@@ -748,7 +745,7 @@ void CaenDigitizer::ProgramPhaDigitizer(int b)
 			}
 			CAEN_DGTZ_WriteRegister(fHandle[b], address, data);
 
-			//Coincindence mode
+			//Coincidence mode
 			address = 0x1080 + ch*0x100;
 			CAEN_DGTZ_ReadRegister(fHandle[b], address, &data);
 			data = (data & ~0xc0000) | ((fSettings->CoincidenceMode(b, ch) & 0x3) << 18);
@@ -761,10 +758,17 @@ void CaenDigitizer::ProgramPhaDigitizer(int b)
 			CAEN_DGTZ_WriteRegister(fHandle[b], address, data);
 
 			//DPP Algorithm Control 2: Local shaped trigger mode, Enable local shape trigger, local trigger validtion mode, enable trigger validation, extra words...
-			address = 0x10A0 + ch*0x100;
-			//data = 0x00020010; //setting the lost trigger counter and baseline*4 
-			data = 0x00020410; //setting the lost trigger counter and total trigger counter 
-			//data = 0x00000000; // everyting disabled? 
+			// local trigger mode (0x54 for coincidences)
+			address = 0x10a0 + ch*0x100;
+			CAEN_DGTZ_ReadRegister(fHandle[b], address, &data);
+			data = (data & ~0xff) | (fSettings->TriggerMode(b, ch) & 0xff);
+			data = (data & ~0x700) | ((fSettings->Extras(b, ch) & 0x7)<<8);
+			data = (data & ~0x30000) | ((fSettings->CounterStepsize(b, ch) & 0x3)<<16);
+			if(fSettings->BaselineRestore(b, ch)) {
+				data |= 0x20000000;
+			} else {
+				data &= ~0x20000000;
+			}
 			CAEN_DGTZ_WriteRegister(fHandle[b], address, data);
 
 			//Veto width , enabled with register 10A0

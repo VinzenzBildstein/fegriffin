@@ -100,6 +100,9 @@ ChannelSettings::ChannelSettings(const V1730_TEMPLATE& templateSettings)
 	fTriggerMode           = templateSettings.trigger_mode;
 	fTriggerMask           = templateSettings.trigger_mask;
 	fCoincidenceMode       = templateSettings.coincidence_mode;
+	fExtras                = templateSettings.extras;
+	fCounterStepsize       = templateSettings.counter_stepsize;
+	fBaselineRestore       = templateSettings.baseline_restore;
 }
 
 #ifdef USE_TENV
@@ -121,6 +124,9 @@ ChannelSettings::ChannelSettings(const int& boardNumber, const int& channelNumbe
 	fTriggerMode           = settings->GetValue(Form("Board.%d.Channel.%d.TriggerMode", boardNumber, channelNumber), 0);
 	fTriggerMask           = settings->GetValue(Form("Board.%d.Channel.%d.TriggerMask", boardNumber, channelNumber), 0);
 	fCoincidenceMode       = settings->GetValue(Form("Board.%d.Channel.%d.CoincidenceMode", boardNumber, channelNumber), 0);
+	fExtras                = settings->GetValue(Form("Board.%d.Channel.%d.Extras", boardNumber, channelNumber), 0);
+	fCounterStepsize       = settings->GetValue(Form("Board.%d.Channel.%d.CounterStepsize", boardNumber, channelNumber), 0);
+	fBaselineRestore       = settings->GetValue(Form("Board.%d.Channel.%d.BaselineRestore", boardNumber, channelNumber), false);
 }
 #endif
 
@@ -192,6 +198,15 @@ void ChannelSettings::ReadCustomSettings(const HNDLE& hDb, const HNDLE& hKey)
 		} else if(strcmp(key.name, "Coincidence mode") == 0 && key.num_values == 1) {
 			size = sizeof(fCoincidenceMode);
 			db_get_data(hDb, hSubKey, &fCoincidenceMode, &size, TID_WORD);
+		} else if(strcmp(key.name, "Extras") == 0 && key.num_values == 1) {
+			size = sizeof(fExtras);
+			db_get_data(hDb, hSubKey, &fExtras, &size, TID_WORD);
+		} else if(strcmp(key.name, "Counter stepsize") == 0 && key.num_values == 1) {
+			size = sizeof(fCounterStepsize);
+			db_get_data(hDb, hSubKey, &fCounterStepsize, &size, TID_BOOL);
+		} else if(strcmp(key.name, "Baseline restore") == 0 && key.num_values == 1) {
+			size = sizeof(fBaselineRestore);
+			db_get_data(hDb, hSubKey, &fBaselineRestore, &size, TID_WORD);
 		} else {
 			// we keep both channel and channelparameter (which are "per board") settings
 			// in the "Channel x" directory, so there might be unrecognized entries
@@ -262,6 +277,15 @@ void ChannelSettings::Print(const ChannelSettings& templateSettings)
 	if(fCoincidenceMode != templateSettings.CoincidenceMode()) {
 		std::cout<<"      coincidence mode "<<fCoincidenceMode<<std::endl;
 	}
+	if(fExtras != templateSettings.Extras()) {
+		std::cout<<"      extras "<<fExtras<<std::endl;
+	}
+	if(fCounterStepsize != templateSettings.CounterStepsize()) {
+		std::cout<<"      counter stepsize "<<fCounterStepsize<<std::endl;
+	}
+	if(fBaselineRestore != templateSettings.BaselineRestore()) {
+		std::cout<<"      baseline restore "<<fBaselineRestore<<std::endl;
+	}
 }
 
 void ChannelSettings::Print()
@@ -294,7 +318,10 @@ void ChannelSettings::Print()
 		<<"      trigger width "<<fTriggerWidth<<std::endl
 		<<"      trigger mode "<<fTriggerMode<<std::endl
 		<<"      trigger mask "<<fTriggerMask<<std::endl
-		<<"      coincidence mode "<<fCoincidenceMode<<std::endl;
+		<<"      coincidence mode "<<fCoincidenceMode<<std::endl
+		<<"      extras "<<fExtras<<std::endl
+		<<"      counter stepsize "<<fCounterStepsize<<std::endl
+		<<"      baseline restore "<<fBaselineRestore<<std::endl;
 }
 
 bool operator==(const ChannelSettings& lh, const ChannelSettings& rh)
@@ -309,10 +336,13 @@ bool operator==(const ChannelSettings& lh, const ChannelSettings& rh)
 			  lh.fInputRange            == rh.fInputRange &&
 			  lh.fEnableZeroSuppression == rh.fEnableZeroSuppression &&
 			  lh.fChargeThreshold       == rh.fChargeThreshold &&
-			  lh.fTriggerWidth == rh.fTriggerWidth &&
-			  lh.fTriggerMode == rh.fTriggerMode &&
-			  lh.fTriggerMask == rh.fTriggerMask &&
-			  lh.fCoincidenceMode == rh.fCoincidenceMode);
+			  lh.fTriggerWidth          == rh.fTriggerWidth &&
+			  lh.fTriggerMode           == rh.fTriggerMode &&
+			  lh.fTriggerMask           == rh.fTriggerMask &&
+			  lh.fCoincidenceMode       == rh.fCoincidenceMode &&
+			  lh.fExtras                == rh.fExtras &&
+			  lh.fCounterStepsize       == rh.fCounterStepsize &&
+			  lh.fBaselineRestore       == rh.fBaselineRestore);
 }
 
 bool operator!=(const ChannelSettings& lh, const ChannelSettings& rh)

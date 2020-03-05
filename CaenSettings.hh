@@ -45,6 +45,9 @@ public:
 	void TriggerMode(const uint8_t& val) { fTriggerMode = val; }
 	void TriggerMask(const uint16_t& val) { fTriggerMask = val; }
 	void CoincidenceMode(const uint8_t& val) { fCoincidenceMode = val; }
+	void Extras(const uint8_t& val) { fExtras = val; }
+	void CounterStepsize(const uint8_t& val) { fCounterStepsize = val; }
+	void BaselineRestore(const bool& val) { fBaselineRestore = val; }
 
 	//getters
 	uint32_t RecordLength() const { return fRecordLength; }
@@ -61,6 +64,9 @@ public:
 	uint8_t TriggerMode() const { return fTriggerMode; }
 	uint16_t TriggerMask() const { return fTriggerMask; }
 	uint8_t CoincidenceMode() const { return fCoincidenceMode; }
+	uint8_t Extras() const { return fExtras; }
+	uint8_t CounterStepsize() const { return fCounterStepsize; }
+	bool BaselineRestore() const { return fBaselineRestore; }
 
 	friend bool operator==(const ChannelSettings& lh, const ChannelSettings& rh);
 	friend bool operator!=(const ChannelSettings& lh, const ChannelSettings& rh);
@@ -80,6 +86,9 @@ private:
 	uint8_t fTriggerMode;
 	uint16_t fTriggerMask;
 	uint8_t fCoincidenceMode;
+	uint8_t fExtras;
+	uint8_t fCounterStepsize;
+	bool fBaselineRestore;
 };
 
 class BoardSettings {
@@ -156,11 +165,16 @@ public:
 	void TriggerMode(const int& i, const uint8_t& val) { fChannelSettings.at(i).TriggerMode(val); }
 	void TriggerMask(const int& i, const uint16_t& val) { fChannelSettings.at(i).TriggerMask(val); }
 	void CoincidenceMode(const int& i, const uint8_t& val) { fChannelSettings.at(i).CoincidenceMode(val); }
+	void Extras(const int& i, const uint8_t& val) { fChannelSettings.at(i).Extras(val); }
+	void CounterStepsize(const int& i, const uint8_t& val) { fChannelSettings.at(i).CounterStepsize(val); }
+	void BaselineRestore(const int& i, const bool& val) { fChannelSettings.at(i).BaselineRestore(val); }
 	
 	//channel getters
-	uint32_t RecordLength(const int& i) const { return fChannelSettings.at(i).RecordLength(); }
+	// register*8 = number of samples (4ns for 725, 2ns for 730), i.e. divide by 8 (on top of 4/2 division from Convert)
+	uint32_t RecordLength(const int& i) const { return Convert(fChannelSettings.at(i).RecordLength())>>3; }
 	uint32_t DCOffset(const int& i) const { return fChannelSettings.at(i).DCOffset(); }
-	uint32_t PreTrigger(const int& i) const { return fChannelSettings.at(i).PreTrigger(); }
+	// in samples (4ns for 725, 2ns for 730)
+	uint32_t PreTrigger(const int& i) const { return Convert(fChannelSettings.at(i).PreTrigger()); }
 	CAEN_DGTZ_PulsePolarity_t PulsePolarity(const int& i) const { return fChannelSettings.at(i).PulsePolarity(); }
 	bool EnableCfd(const int& i) const { return fChannelSettings.at(i).EnableCfd(); }
 	uint32_t CfdParameters(const int& i) const { return fChannelSettings.at(i).CfdParameters(); }
@@ -168,15 +182,34 @@ public:
 	bool InputRange(const int& i) const { return fChannelSettings.at(i).InputRange(); }
 	bool EnableZeroSuppression(const int& i) const { return fChannelSettings.at(i).EnableZeroSuppression(); }
 	uint32_t ChargeThreshold(const int& i) const { return fChannelSettings.at(i).ChargeThreshold(); }
-	uint16_t TriggerWidth(const int& i) const { return fChannelSettings.at(i).TriggerWidth(); }
+	// 16ns for 725, 8ns for 730, i.e. divide by 4 (on top of 4/2 division from Convert)
+	uint16_t TriggerWidth(const int& i) const { return (Convert(fChannelSettings.at(i).TriggerWidth())>>2); }
 	uint8_t TriggerMode(const int& i) const { return fChannelSettings.at(i).TriggerMode(); }
 	uint16_t TriggerMask(const int& i) const { return fChannelSettings.at(i).TriggerMask(); }
 	uint8_t CoincidenceMode(const int& i) const { return fChannelSettings.at(i).CoincidenceMode(); }
+	uint8_t Extras(const int& i) const { return fChannelSettings.at(i).Extras(); }
+	uint8_t CounterStepsize(const int& i) const { return fChannelSettings.at(i).CounterStepsize(); }
+	bool BaselineRestore(const int& i) const { return fChannelSettings.at(i).BaselineRestore(); }
 	
 	friend bool operator==(const BoardSettings& lh, const BoardSettings& rh);
 	friend bool operator!=(const BoardSettings& lh, const BoardSettings& rh);
 
 private:
+	template<typename T>
+		T Convert(const T& val) const { 
+			// convert from ns to samples, i.e. divide by 4 for 725 series, and divide by 2 for 730 series
+			switch(fFamilyType) {
+				case CAEN_DGTZ_XX725_FAMILY_CODE:
+					return (val>>2);
+					break;
+				case CAEN_DGTZ_XX730_FAMILY_CODE:
+					return (val>>1);
+					break;
+				default:
+					return val;
+					break;
+			};
+		}
 	CAEN_DGTZ_BoardFamilyCode_t fFamilyType; //enum
 	CAEN_DGTZ_ConnectionType fLinkType; //enum
 	EBoardType fBoardType; // enum
@@ -254,6 +287,9 @@ public:
 	uint8_t TriggerMode(int i, int j) const { return fBoardSettings.at(i).TriggerMode(j); }
 	uint16_t TriggerMask(int i, int j) const { return fBoardSettings.at(i).TriggerMask(j); }
 	uint8_t CoincidenceMode(int i, int j) const { return fBoardSettings.at(i).CoincidenceMode(j); }
+	uint8_t Extras(int i, int j) const { return fBoardSettings.at(i).Extras(j); }
+	uint8_t CounterStepsize(int i, int j) const { return fBoardSettings.at(i).CounterStepsize(j); }
+	bool BaselineRestore(int i, int j) const { return fBoardSettings.at(i).BaselineRestore(j); }
 
 	size_t BufferSize() const { return fBufferSize; }
 
